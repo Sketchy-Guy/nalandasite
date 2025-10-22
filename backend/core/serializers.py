@@ -1,0 +1,220 @@
+from rest_framework import serializers
+from .models import (
+    Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club,
+    AcademicService, Topper, CreativeWork, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable
+)
+
+class DepartmentGalleryImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    video_url = serializers.SerializerMethodField()
+    media_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = DepartmentGalleryImage
+        fields = '__all__'
+    
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+        return None
+    
+    def get_video_url(self, obj):
+        if obj.video:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.video.url)
+        return None
+    
+    def get_media_url(self, obj):
+        if obj.media_type == 'image' and obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+        elif obj.media_type == 'video' and obj.video:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.video.url)
+        return None
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    hero_image_url = serializers.SerializerMethodField()
+    gallery_images = DepartmentGalleryImageSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Department
+        fields = '__all__'
+    
+    def get_hero_image_url(self, obj):
+        if obj.hero_image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.hero_image.url)
+        return None
+
+class HeroImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = HeroImage
+        fields = '__all__'
+    
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+        return None
+
+class NoticeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notice
+        fields = '__all__'
+
+class MagazineSerializer(serializers.ModelSerializer):
+    cover_image_url = serializers.SerializerMethodField()
+    download_url = serializers.SerializerMethodField()
+    delete_cover_image = serializers.BooleanField(write_only=True, required=False)
+    
+    class Meta:
+        model = Magazine
+        fields = '__all__'
+    
+    def get_cover_image_url(self, obj):
+        if obj.cover_image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.cover_image.url)
+        return None
+    
+    def get_download_url(self, obj):
+        """Return the download URL - external URL if available, otherwise local file URL"""
+        return obj.get_file_url
+    
+    def update(self, instance, validated_data):
+        """Handle cover image deletion during update"""
+        delete_cover_image = validated_data.pop('delete_cover_image', False)
+        
+        # Delete current cover image if requested
+        if delete_cover_image and instance.cover_image:
+            if instance.cover_image.storage.exists(instance.cover_image.name):
+                instance.cover_image.storage.delete(instance.cover_image.name)
+            instance.cover_image = None
+        
+        # Update other fields
+        return super().update(instance, validated_data)
+
+class ClubSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Club
+        fields = '__all__'
+
+class AcademicServiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AcademicService
+        fields = '__all__'
+
+class TopperSerializer(serializers.ModelSerializer):
+    photo_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Topper
+        fields = '__all__'
+    
+    def get_photo_url(self, obj):
+        if obj.photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.photo.url)
+        return None
+
+class CreativeWorkSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    content_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = CreativeWork
+        fields = '__all__'
+    
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+        return None
+    
+    def get_content_url(self, obj):
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+        return None
+
+
+class CampusStatsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CampusStats
+        fields = '__all__'
+
+
+class NewsSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = News
+        fields = '__all__'
+    
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+        return None
+
+
+class ContactInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactInfo
+        fields = '__all__'
+
+
+class OfficeLocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OfficeLocation
+        fields = '__all__'
+
+
+class QuickContactInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuickContactInfo
+        fields = '__all__'
+
+
+class TimetableSerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(source='department.name', read_only=True)
+    department_code = serializers.CharField(source='department.code', read_only=True)
+    file_url = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Timetable
+        fields = '__all__'
+    
+    def get_file_url(self, obj):
+        """Get the file URL (external or local)"""
+        if obj.external_link:
+            return obj.external_link
+        elif obj.timetable_file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.timetable_file.url)
+        return None
+    
+    def get_image_url(self, obj):
+        """Get the image URL"""
+        if obj.timetable_image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.timetable_image.url)
+        return None

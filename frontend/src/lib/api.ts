@@ -1,0 +1,422 @@
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+console.log('API Base URL:', API_BASE_URL);
+
+// API client with authentication
+class ApiClient {
+  private baseURL: string;
+  private token: string | null = null;
+
+  constructor(baseURL: string) {
+    this.baseURL = baseURL;
+    this.token = localStorage.getItem('access_token');
+  }
+
+  private async request(endpoint: string, options: RequestInit = {}) {
+    const url = `${this.baseURL}${endpoint}`;
+    const headers: Record<string, string> = {};
+
+    // Only set Content-Type for non-FormData requests
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    // Copy existing headers
+    if (options.headers) {
+      Object.entries(options.headers).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          headers[key] = value;
+        }
+      });
+    }
+
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    if (response.status === 401) {
+      // Token expired, try to refresh
+      console.log('Token expired, attempting refresh...');
+      await this.refreshToken();
+      
+      if (this.token) {
+        // Retry the request with new token
+        headers['Authorization'] = `Bearer ${this.token}`;
+        console.log('Retrying request with refreshed token...');
+        const retryResponse = await fetch(url, { ...options, headers });
+        return retryResponse;
+      } else {
+        console.log('Token refresh failed, redirecting to login...');
+        return response; // Return original 401 response
+      }
+    }
+
+    return response;
+  }
+
+  private async refreshToken() {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+      console.log('No refresh token found, logging out...');
+      this.logout();
+      return;
+    }
+
+    try {
+      console.log('Attempting to refresh token...');
+      const response = await fetch(`${this.baseURL}/auth/token/refresh/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh: refreshToken }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.token = data.access;
+        localStorage.setItem('access_token', data.access);
+        console.log('Token refreshed successfully');
+      } else {
+        const errorText = await response.text();
+        console.log('Token refresh failed:', response.status, errorText);
+        this.logout();
+      }
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      this.logout();
+    }
+  }
+
+  private logout() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    window.location.href = '/admin/login';
+  }
+
+  // Authentication methods
+  async login(email: string, password: string) {
+    const response = await this.request('/auth/login/', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      this.token = data.access;
+      localStorage.setItem('access_token', data.access);
+      localStorage.setItem('refresh_token', data.refresh);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('profile', JSON.stringify(data.profile));
+      return data;
+    } else {
+      const error = await response.json();
+      // Handle Django validation errors
+      let errorMessage = 'Login failed';
+      if (error.non_field_errors && error.non_field_errors.length > 0) {
+        errorMessage = error.non_field_errors[0];
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (error.detail) {
+        errorMessage = error.detail;
+      }
+      throw new Error(errorMessage);
+    }
+  }
+
+  async getProfile() {
+    const response = await this.request('/auth/profile/');
+    if (response.ok) {
+      return response.json();
+    }
+    throw new Error('Failed to get profile');
+  }
+
+  // Generic CRUD methods
+  async get(endpoint: string, params?: Record<string, any>) {
+    const url = new URL(`${this.baseURL}${endpoint}`);
+    if (params) {
+      Object.keys(params).forEach(key => {
+        if (params[key] !== undefined && params[key] !== null) {
+          url.searchParams.append(key, params[key]);
+        }
+      });
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: this.token ? { 'Authorization': `Bearer ${this.token}` } : {},
+    });
+
+    if (response.ok) {
+      return response.json();
+    }
+    throw new Error(`GET ${endpoint} failed`);
+  }
+
+  async post(endpoint: string, data: any) {
+    try {
+      const response = await this.request(endpoint, {
+        method: 'POST',
+        body: data instanceof FormData ? data : JSON.stringify(data),
+        headers: data instanceof FormData ? {} : { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        return response.json();
+      }
+      
+      // Try to parse error response
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+      }
+      
+      const error = new Error(errorData.message || `POST ${endpoint} failed`);
+      (error as any).response = { data: errorData, status: response.status };
+      throw error;
+    } catch (error: any) {
+      if (error.response) {
+        throw error; // Re-throw if it already has response data
+      }
+      // Network error or other issue
+      const networkError = new Error(`Network error: ${error.message}`);
+      (networkError as any).response = undefined;
+      throw networkError;
+    }
+  }
+
+  async put(endpoint: string, data: any) {
+    try {
+      const response = await this.request(endpoint, {
+        method: 'PUT',
+        body: data instanceof FormData ? data : JSON.stringify(data),
+        headers: data instanceof FormData ? {} : { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        return response.json();
+      }
+      
+      // Try to parse error response
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+      }
+      
+      const error = new Error(errorData.message || `PUT ${endpoint} failed`);
+      (error as any).response = { data: errorData, status: response.status };
+      throw error;
+    } catch (error: any) {
+      if (error.response) {
+        throw error; // Re-throw if it already has response data
+      }
+      // Network error or other issue
+      const networkError = new Error(`Network error: ${error.message}`);
+      (networkError as any).response = undefined;
+      throw networkError;
+    }
+  }
+
+  async patch(endpoint: string, data: any) {
+    const response = await this.request(endpoint, {
+      method: 'PATCH',
+      body: data instanceof FormData ? data : JSON.stringify(data),
+    });
+
+    if (response.ok) {
+      return response.json();
+    }
+    const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+    throw new Error(error.message || `PATCH ${endpoint} failed`);
+  }
+
+  async delete(endpoint: string) {
+    const response = await this.request(endpoint, {
+      method: 'DELETE',
+    });
+
+    if (response.ok) {
+      return response.status === 204 ? null : response.json();
+    }
+    throw new Error(`DELETE ${endpoint} failed`);
+  }
+}
+
+// Create API client instance
+export const apiClient = new ApiClient(API_BASE_URL);
+
+// Specific API methods for different entities
+export const api = {
+  // Authentication
+  auth: {
+    login: (email: string, password: string) => apiClient.login(email, password),
+    getProfile: () => apiClient.getProfile(),
+  },
+
+  // Hero Images
+  heroImages: {
+    list: (params?: any) => apiClient.get('/hero-images/', params),
+    get: (id: string) => apiClient.get(`/hero-images/${id}/`),
+    create: (data: FormData) => apiClient.post('/hero-images/', data),
+    update: (id: string, data: FormData) => apiClient.patch(`/hero-images/${id}/`, data),
+    patch: (id: string, data: FormData) => apiClient.patch(`/hero-images/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/hero-images/${id}/`),
+  },
+
+  // Notices
+  notices: {
+    list: (params?: any) => apiClient.get('/notices/', params),
+    get: (id: string) => apiClient.get(`/notices/${id}/`),
+    create: (data: any) => apiClient.post('/notices/', data),
+    update: (id: string, data: any) => apiClient.put(`/notices/${id}/`, data),
+    patch: (id: string, data: any) => apiClient.patch(`/notices/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/notices/${id}/`),
+  },
+
+  // Magazines
+  magazines: {
+    list: (params?: any) => apiClient.get('/magazines/', params),
+    get: (id: string) => apiClient.get(`/magazines/${id}/`),
+    create: (data: FormData) => apiClient.post('/magazines/', data),
+    update: (id: string, data: FormData) => apiClient.put(`/magazines/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/magazines/${id}/`),
+  },
+
+  // Clubs
+  clubs: {
+    list: (params?: any) => apiClient.get('/clubs/', params),
+    get: (id: string) => apiClient.get(`/clubs/${id}/`),
+    create: (data: any) => apiClient.post('/clubs/', data),
+    update: (id: string, data: any) => apiClient.put(`/clubs/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/clubs/${id}/`),
+  },
+
+  // Academic Services
+  academicServices: {
+    list: (params?: any) => apiClient.get('/academic-services/', params),
+    get: (id: string) => apiClient.get(`/academic-services/${id}/`),
+    create: (data: any) => apiClient.post('/academic-services/', data),
+    update: (id: string, data: any) => apiClient.put(`/academic-services/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/academic-services/${id}/`),
+  },
+
+  // Toppers
+  toppers: {
+    list: (params?: any) => apiClient.get('/toppers/', params),
+    get: (id: string) => apiClient.get(`/toppers/${id}/`),
+    create: (data: FormData) => apiClient.post('/toppers/', data),
+    update: (id: string, data: FormData) => apiClient.put(`/toppers/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/toppers/${id}/`),
+  },
+
+  // Creative Works
+  creativeWorks: {
+    list: (params?: any) => apiClient.get('/creative-works/', params),
+    get: (id: string) => apiClient.get(`/creative-works/${id}/`),
+    create: (data: FormData) => apiClient.post('/creative-works/', data),
+    update: (id: string, data: FormData) => apiClient.put(`/creative-works/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/creative-works/${id}/`),
+  },
+
+  // Departments
+  departments: {
+    list: (params?: any) => apiClient.get('/departments/', params),
+    get: (id: string) => apiClient.get(`/departments/${id}/`),
+    create: (data: any) => apiClient.post('/departments/', data),
+    update: (id: string, data: any) => apiClient.put(`/departments/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/departments/${id}/`),
+  },
+
+  // Campus Stats
+  campusStats: {
+    list: (params?: any) => apiClient.get('/campus-stats/', params),
+    get: (id: string) => apiClient.get(`/campus-stats/${id}/`),
+    create: (data: any) => apiClient.post('/campus-stats/', data),
+    update: (id: string, data: any) => apiClient.put(`/campus-stats/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/campus-stats/${id}/`),
+  },
+
+  // News
+  news: {
+    list: (params?: any) => apiClient.get('/news/', params),
+    get: (id: string) => apiClient.get(`/news/${id}/`),
+    create: (data: FormData) => apiClient.post('/news/', data),
+    update: (id: string, data: FormData) => apiClient.put(`/news/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/news/${id}/`),
+  },
+
+  // Contact Info
+  contactInfo: {
+    list: (params?: any) => apiClient.get('/contact-info/', params),
+    get: (id: string) => apiClient.get(`/contact-info/${id}/`),
+    create: (data: any) => apiClient.post('/contact-info/', data),
+    update: (id: string, data: any) => apiClient.put(`/contact-info/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/contact-info/${id}/`),
+  },
+
+  // Office Locations
+  officeLocations: {
+    list: (params?: any) => apiClient.get('/office-locations/', params),
+    get: (id: string) => apiClient.get(`/office-locations/${id}/`),
+    create: (data: any) => apiClient.post('/office-locations/', data),
+    update: (id: string, data: any) => apiClient.put(`/office-locations/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/office-locations/${id}/`),
+  },
+
+  // Quick Contact Information
+  quickContactInfo: {
+    list: (params?: any) => apiClient.get('/quick-contact-info/', params),
+    get: (id: string) => apiClient.get(`/quick-contact-info/${id}/`),
+    create: (data: any) => apiClient.post('/quick-contact-info/', data),
+    update: (id: string, data: any) => apiClient.put(`/quick-contact-info/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/quick-contact-info/${id}/`),
+  },
+
+  // Aliases for compatibility
+  amenities: {
+    list: (params?: any) => apiClient.get('/contact-info/', params),
+    get: (id: string) => apiClient.get(`/contact-info/${id}/`),
+    create: (data: any) => apiClient.post('/contact-info/', data),
+    update: (id: string, data: any) => apiClient.put(`/contact-info/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/contact-info/${id}/`),
+  },
+
+  // Stats alias
+  stats: {
+    list: (params?: any) => apiClient.get('/campus-stats/', params),
+    get: (id: string) => apiClient.get(`/campus-stats/${id}/`),
+    create: (data: any) => apiClient.post('/campus-stats/', data),
+    update: (id: string, data: any) => apiClient.put(`/campus-stats/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/campus-stats/${id}/`),
+  },
+
+  // Department Gallery Images
+  departmentGalleryImages: {
+    list: (params?: any) => apiClient.get('/department-gallery-images/', params),
+    get: (id: string) => apiClient.get(`/department-gallery-images/${id}/`),
+    create: (data: FormData) => apiClient.post('/department-gallery-images/', data),
+    update: (id: string, data: FormData) => apiClient.put(`/department-gallery-images/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/department-gallery-images/${id}/`),
+  },
+
+  // Timetables
+  timetables: {
+    list: (params?: any) => apiClient.get('/timetables/', params),
+    get: (id: string) => apiClient.get(`/timetables/${id}/`),
+    create: (data: FormData | any) => apiClient.post('/timetables/', data),
+    update: (id: string, data: FormData | any) => apiClient.put(`/timetables/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/timetables/${id}/`),
+    byDepartment: (departmentId: string) => apiClient.get(`/timetables/by_department/?department_id=${departmentId}`),
+    current: () => apiClient.get('/timetables/current/'),
+  },
+
+  // Generic delete method
+  delete: (endpoint: string) => apiClient.delete(endpoint),
+};

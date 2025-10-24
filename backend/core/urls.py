@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     DepartmentViewSet, DepartmentGalleryImageViewSet, HeroImageViewSet, NoticeViewSet,
     MagazineViewSet, ClubViewSet, AcademicServiceViewSet,
-    TopperViewSet, CreativeWorkViewSet, CampusStatsViewSet,
+    TopperViewSet, CreativeWorkViewSet, StudentSubmissionViewSet, CampusStatsViewSet,
     NewsViewSet, ContactInfoViewSet, OfficeLocationViewSet, QuickContactInfoViewSet, TimetableViewSet
 )
 
@@ -17,6 +17,7 @@ router.register(r'clubs', ClubViewSet)
 router.register(r'academic-services', AcademicServiceViewSet)
 router.register(r'toppers', TopperViewSet)
 router.register(r'creative-works', CreativeWorkViewSet)
+router.register(r'student-submissions', StudentSubmissionViewSet)
 router.register(r'campus-stats', CampusStatsViewSet)
 router.register(r'news', NewsViewSet)
 router.register(r'contact-info', ContactInfoViewSet)

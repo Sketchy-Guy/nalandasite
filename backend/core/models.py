@@ -299,21 +299,47 @@ class Topper(BaseModel):
         ordering = ['rank', 'year']
 
 class CreativeWork(BaseModel):
-    """Creative works and student projects"""
+    """Creative works and student projects for homepage gallery"""
     CATEGORY_CHOICES = [
-        ('Art', 'Art'),
-        ('Literature', 'Literature'),
-        ('Technology', 'Technology'),
-        ('Music', 'Music'),
+        ('Art & Design', 'Art & Design'),
         ('Photography', 'Photography'),
+        ('Poetry & Literature', 'Poetry & Literature'),
+        ('Music & Dance', 'Music & Dance'),
+        ('Digital Media', 'Digital Media'),
+        ('Innovation & Projects', 'Innovation & Projects'),
+        ('Digital Art', 'Digital Art'),
+        ('Music Composition', 'Music Composition'),
+        ('Writing', 'Writing'),
+        ('Design', 'Design'),
+        ('Video', 'Video'),
+        ('Innovation', 'Innovation'),
+        ('Technology', 'Technology'),
+        ('Research', 'Research'),
+        ('Startup', 'Startup'),
+        ('Other', 'Other')
+    ]
+    
+    DEPARTMENT_CHOICES = [
+        ('Computer Science & Engineering', 'Computer Science & Engineering'),
+        ('Information Technology', 'Information Technology'),
+        ('Mechanical Engineering', 'Mechanical Engineering'),
+        ('Electrical Engineering', 'Electrical Engineering'),
+        ('Civil Engineering', 'Civil Engineering'),
+        ('MBA', 'MBA'),
+        ('MCA', 'MCA'),
+        ('BCA', 'BCA'),
         ('Other', 'Other')
     ]
     
     title = models.CharField(max_length=200)
-    description = models.TextField()
-    author_name = models.CharField(max_length=100, default='Unknown')
-    author_department = models.CharField(max_length=100, default='General')
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='Other')
+    description = models.TextField(blank=True, null=True)
+    author_name = models.CharField(max_length=100)
+    author_department = models.CharField(max_length=100, choices=DEPARTMENT_CHOICES, blank=True, null=True)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    image_url = models.URLField(blank=True, null=True, help_text="External image URL")
+    content_url = models.URLField(blank=True, null=True, help_text="External content file URL")
+    instagram_url = models.URLField(blank=True, null=True, help_text="Instagram post/reel URL")
+    youtube_url = models.URLField(blank=True, null=True, help_text="YouTube video URL")
     image = models.ImageField(upload_to='creative_works/', blank=True, null=True)
     file = models.FileField(upload_to='creative_works/files/', blank=True, null=True)
     is_featured = models.BooleanField(default=False)
@@ -346,8 +372,140 @@ class CreativeWork(BaseModel):
                 pass
         super().save(*args, **kwargs)
 
+    @property
+    def get_image_url(self):
+        """Return external image URL if available, otherwise local image URL"""
+        if self.image_url:
+            return self.image_url
+        elif self.image:
+            return self.image.url
+        return None
+
+    @property
+    def get_content_url(self):
+        """Return external content URL if available, otherwise local file URL"""
+        if self.content_url:
+            return self.content_url
+        elif self.file:
+            return self.file.url
+        return None
+
     class Meta:
         ordering = ['-created_at']
+
+
+class StudentSubmission(BaseModel):
+    """Student creative work submissions for review"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    CATEGORY_CHOICES = [
+        ('Art & Design', 'Art & Design'),
+        ('Photography', 'Photography'),
+        ('Poetry & Literature', 'Poetry & Literature'),
+        ('Music & Dance', 'Music & Dance'),
+        ('Digital Media', 'Digital Media'),
+        ('Innovation & Projects', 'Innovation & Projects'),
+        ('Digital Art', 'Digital Art'),
+        ('Music Composition', 'Music Composition'),
+        ('Writing', 'Writing'),
+        ('Design', 'Design'),
+        ('Video', 'Video'),
+        ('Innovation', 'Innovation'),
+        ('Technology', 'Technology'),
+        ('Research', 'Research'),
+        ('Startup', 'Startup'),
+        ('Other', 'Other')
+    ]
+    
+    DEPARTMENT_CHOICES = [
+        ('Computer Science & Engineering', 'Computer Science & Engineering'),
+        ('Information Technology', 'Information Technology'),
+        ('Mechanical Engineering', 'Mechanical Engineering'),
+        ('Electrical Engineering', 'Electrical Engineering'),
+        ('Civil Engineering', 'Civil Engineering'),
+        ('MBA', 'MBA'),
+        ('MCA', 'MCA'),
+        ('BCA', 'BCA'),
+        ('Other', 'Other')
+    ]
+    
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    department = models.CharField(max_length=100, choices=DEPARTMENT_CHOICES, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    is_featured = models.BooleanField(default=False)
+    
+    # File uploads
+    image = models.ImageField(upload_to='student_submissions/', blank=True, null=True)
+    file = models.FileField(upload_to='student_submissions/files/', blank=True, null=True)
+    
+    # External URLs
+    image_url = models.URLField(blank=True, null=True, help_text="External image URL")
+    file_url = models.URLField(blank=True, null=True, help_text="External file URL")
+    instagram_url = models.URLField(blank=True, null=True, help_text="Instagram post/reel URL")
+    youtube_url = models.URLField(blank=True, null=True, help_text="YouTube video URL")
+    
+    # Review information
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(blank=True, null=True)
+    review_comments = models.TextField(blank=True, null=True)
+    
+    # User relationship
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='creative_submissions')
+
+    def __str__(self):
+        return f"{self.title} by {self.user.get_full_name() or self.user.username}"
+
+    @property
+    def get_image_url(self):
+        """Return external image URL if available, otherwise local image URL"""
+        if self.image_url:
+            return self.image_url
+        elif self.image:
+            return self.image.url
+        return None
+
+    @property
+    def get_file_url(self):
+        """Return external file URL if available, otherwise local file URL"""
+        if self.file_url:
+            return self.file_url
+        elif self.file:
+            return self.file.url
+        return None
+
+    def delete(self, *args, **kwargs):
+        """Override delete to remove files from storage"""
+        if self.image:
+            if self.image.storage.exists(self.image.name):
+                self.image.storage.delete(self.image.name)
+        if self.file:
+            if self.file.storage.exists(self.file.name):
+                self.file.storage.delete(self.file.name)
+        super().delete(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        """Override save to delete old files when replacing"""
+        if self.pk:
+            try:
+                old_instance = StudentSubmission.objects.get(pk=self.pk)
+                if old_instance.image and old_instance.image != self.image:
+                    if old_instance.image.storage.exists(old_instance.image.name):
+                        old_instance.image.storage.delete(old_instance.image.name)
+                if old_instance.file and old_instance.file != self.file:
+                    if old_instance.file.storage.exists(old_instance.file.name):
+                        old_instance.file.storage.delete(old_instance.file.name)
+            except StudentSubmission.DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['-submitted_at']
 
 
 class CampusStats(BaseModel):

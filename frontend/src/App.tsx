@@ -71,6 +71,7 @@ import AcademicContentManager from "./components/admin/academic-content-manager"
 import AcademicExcellenceManager from "./components/admin/academic-excellence-manager";
 import ClubsActivitiesManager from "./components/admin/clubs-activities-manager";
 import { SubmissionsManager } from "./components/admin/submissions-manager";
+import { CreativeGalleryManager } from "./components/admin/creative-gallery-manager";
 import RoleManagement from "./components/admin/role-management";
 import { ContactManager } from "./components/admin/contact-manager";
 import { NewsManager } from "./components/admin/news-manager";
@@ -208,6 +209,7 @@ const App = () => (
                 <Route path="academic-excellence" element={<AcademicExcellenceManager />} />
                 <Route path="clubs-activities" element={<ClubsActivitiesManager />} />
                 <Route path="submissions" element={<SubmissionsManager />} />
+                <Route path="creative-gallery" element={<CreativeGalleryManager />} />
                 <Route path="roles" element={<RoleManagement />} />
                 <Route path="contact" element={<ContactManager />} />
                 <Route path="news" element={<NewsManager />} />

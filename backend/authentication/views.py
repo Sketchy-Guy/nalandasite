@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
 from django.db import models
 from .serializers import LoginSerializer, RegisterSerializer, ProfileSerializer
 from .models import Profile
@@ -199,3 +200,56 @@ def superadmin_list_view(request):
         })
     
     return Response(superadmin_data)
+
+@api_view(['PUT'])
+@permission_classes([permissions.IsAuthenticated])
+def update_user_credentials_view(request, user_id):
+    """Update user credentials (username, email, password) - Admin only for regular users"""
+    # Check if current user is admin (but not necessarily superadmin)
+    if not (hasattr(request.user, 'profile') and request.user.profile.role == 'admin'):
+        return Response({'error': 'Only admins can update user credentials'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Prevent editing superadmin accounts from custom admin panel
+    if user.is_superuser:
+        return Response({'error': 'Superadmin accounts can only be managed through Django admin panel'}, status=status.HTTP_403_FORBIDDEN)
+    
+    # Get the data to update
+    username = request.data.get('username')
+    email = request.data.get('email')
+    password = request.data.get('password')
+    
+    # Validate and update username
+    if username:
+        if User.objects.filter(username=username).exclude(id=user_id).exists():
+            return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
+        user.username = username
+    
+    # Validate and update email
+    if email:
+        if User.objects.filter(email=email).exclude(id=user_id).exists():
+            return Response({'error': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
+        user.email = email
+    
+    # Update password if provided
+    if password:
+        if len(password) < 8:
+            return Response({'error': 'Password must be at least 8 characters long'}, status=status.HTTP_400_BAD_REQUEST)
+        user.password = make_password(password)
+    
+    user.save()
+    
+    return Response({
+        'message': 'User credentials updated successfully',
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        }
+    })

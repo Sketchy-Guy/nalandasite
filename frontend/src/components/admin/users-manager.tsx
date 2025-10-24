@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Key } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { api } from '@/lib/api';
 
 interface Profile {
   id: string;
@@ -39,14 +41,22 @@ interface Profile {
 }
 
 export function UsersManager() {
+  const { isAdmin } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [filteredProfiles, setFilteredProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [superAdmins, setSuperAdmins] = useState<any[]>([]);
+  const [credentialsData, setCredentialsData] = useState({
+    username: '',
+    email: '',
+    password: '',
+  });
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -304,6 +314,43 @@ export function UsersManager() {
       toast({
         title: 'Error',
         description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Credential management functions (Admin only for regular users)
+  const openCredentialsDialog = (profile: Profile) => {
+    if (!isAdmin) {
+      toast({
+        title: 'Access Denied',
+        description: 'Only admins can edit user credentials',
+        variant: 'destructive'
+      });
+      return;
+    }
+    setSelectedProfile(profile);
+    setCredentialsData({
+      username: profile.username,
+      email: profile.email,
+      password: '',
+    });
+    setIsCredentialsDialogOpen(true);
+  };
+
+  const handleCredentialsUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProfile) return;
+
+    try {
+      const response = await api.users.updateCredentials(selectedProfile.user_id.toString(), credentialsData);
+      toast({ title: 'Success', description: 'User credentials updated successfully' });
+      setIsCredentialsDialogOpen(false);
+      fetchProfiles();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update credentials',
         variant: 'destructive'
       });
     }
@@ -713,12 +760,31 @@ export function UsersManager() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => openEditDialog(profile)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => deleteProfile(profile.user_id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!profile.is_staff ? (
+                        <>
+                          <Button variant="outline" size="sm" onClick={() => openEditDialog(profile)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          {isAdmin && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => openCredentialsDialog(profile)}
+                              className="text-blue-600 hover:text-blue-700"
+                              title="Edit Credentials"
+                            >
+                              <Key className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button variant="destructive" size="sm" onClick={() => deleteProfile(profile.user_id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <div className="text-sm text-muted-foreground px-2 py-1 bg-purple-50 rounded border">
+                          Managed via Django Admin
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -727,6 +793,58 @@ export function UsersManager() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Credentials Edit Dialog */}
+      <Dialog open={isCredentialsDialogOpen} onOpenChange={setIsCredentialsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              Edit User Credentials
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              For students, faculty, and alumni only. Superadmins managed via Django admin.
+            </p>
+          </DialogHeader>
+          <form onSubmit={handleCredentialsUpdate} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                value={credentialsData.username}
+                onChange={(e) => setCredentialsData({...credentialsData, username: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={credentialsData.email}
+                onChange={(e) => setCredentialsData({...credentialsData, email: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">New Password (leave blank to keep current)</Label>
+              <Input
+                id="password"
+                type="password"
+                value={credentialsData.password}
+                onChange={(e) => setCredentialsData({...credentialsData, password: e.target.value})}
+                placeholder="Enter new password or leave blank"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsCredentialsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Update Credentials</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

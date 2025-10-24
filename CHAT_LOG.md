@@ -599,3 +599,111 @@ class Timetable(BaseModel):
 - ✅ **Code Quality**: Clean, optimized, no unused functionality
 
 **RESULT**: Complete timetable management system with robust image handling, proper download functionality, and clean admin interface. System is production-ready and optimized for VPS deployment with Django media file serving.
+
+---
+
+## Session: Django Admin URL Configuration & Deployment Setup
+
+### 2025-10-23 14:30 - Django Admin URL Conflict Resolution
+
+**USER REQUEST**: Resolve URL conflict between Django admin panel and custom admin panel for production deployment.
+
+**ISSUE IDENTIFIED**: 
+- Both Django admin (`/admin/`) and custom React admin panel (`/admin/`) trying to use same URL path
+- In production, Nginx routing priority causes Django admin to block custom admin panel access
+- Need separate URLs for both admin interfaces
+
+**TASK**: Change Django admin URL to avoid conflict and enable access to both admin interfaces.
+
+**IMPLEMENTATION COMPLETED**:
+
+✅ **Django Admin URL Changed**:
+- **Before**: `path('admin/', admin.site.urls)` 
+- **After**: `path('logi-admin/', admin.site.urls)`
+- **File Modified**: `backend/college_website/urls.py`
+
+✅ **URL Access Structure**:
+**Development Environment**:
+- Django Admin: `http://localhost:8000/logi-admin/`
+- Custom Admin: `http://localhost:8080/admin/`
+
+**Production Environment**:
+- Django Admin: `https://your-domain.com/logi-admin/`
+- Custom Admin: `https://your-domain.com/admin/`
+
+✅ **Nginx Configuration Updated**:
+```nginx
+# Django Admin (new URL)
+location /logi-admin/ {
+    proxy_pass http://127.0.0.1:8000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+# Frontend React App (handles /admin route)
+location / {
+    root /var/www/html/nalanda-vista;
+    try_files $uri $uri/ /index.html;
+}
+```
+
+✅ **Documentation Updated**:
+1. **DEPLOYMENT_GUIDE.md**: 
+   - Updated all references from `/django-admin/` to `/logi-admin/`
+   - Modified implementation steps and examples
+   - Updated security configurations and IP restrictions
+   - Corrected final access URLs and testing instructions
+
+2. **CHAT_LOG.md**: 
+   - Added complete session documentation
+   - Recorded URL change rationale and implementation
+   - Documented development vs production access methods
+
+✅ **Security Benefits**:
+- **Obscure URL**: `/logi-admin/` is less predictable than standard `/admin/`
+- **Clean Separation**: System admin vs content admin interfaces
+- **No Conflicts**: Custom admin panel can use `/admin/` freely
+- **Professional Setup**: Proper separation of concerns
+
+✅ **Admin Interface Separation**:
+**Django Admin (`/logi-admin/`) - For System Administrators**:
+- Superadmin management (create, edit, delete superadmins)
+- System-level user management (permissions, staff status)
+- Database administration (direct model access)
+- Emergency access (when custom admin is down)
+
+**Custom Admin (`/admin/`) - For Content Administrators**:
+- Day-to-day user management (students, faculty, alumni)
+- Content management (submissions, creative works)
+- User-friendly interface (better UX for non-technical admins)
+- Business workflows (approve/reject submissions)
+
+**TECHNICAL IMPLEMENTATION**:
+
+**URL Pattern Change**:
+```python
+# backend/college_website/urls.py
+urlpatterns = [
+    path('logi-admin/', admin.site.urls),  # Changed from 'admin/'
+    path('api/auth/', include('authentication.urls')),
+    path('api/', include('core.urls')),
+]
+```
+
+**Deployment Steps**:
+1. Update Django URLs in `backend/college_website/urls.py`
+2. Update Nginx configuration to route `/logi-admin/` to Django backend
+3. Remove old `/admin/` Django routing to free path for React app
+4. Restart Django backend and reload Nginx configuration
+5. Test both admin interfaces for proper access
+
+**CURRENT STATUS**:
+- ✅ **Django Admin**: Accessible at `/logi-admin/` path
+- ✅ **Custom Admin**: Free to use `/admin/` path  
+- ✅ **Documentation**: Updated with new URL structure
+- ✅ **Production Ready**: Nginx configuration provided
+- ✅ **Security Enhanced**: Non-standard admin URL for better security
+
+**RESULT**: Successfully resolved URL conflict between Django admin and custom admin panel. Both interfaces now have dedicated paths and can coexist in production deployment without conflicts. System administrators can manage superadmins via Django admin at `/logi-admin/`, while content administrators use the custom interface at `/admin/`.

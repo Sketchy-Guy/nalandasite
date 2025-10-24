@@ -320,9 +320,23 @@ export const api = {
   creativeWorks: {
     list: (params?: any) => apiClient.get('/creative-works/', params),
     get: (id: string) => apiClient.get(`/creative-works/${id}/`),
-    create: (data: FormData) => apiClient.post('/creative-works/', data),
-    update: (id: string, data: FormData) => apiClient.put(`/creative-works/${id}/`, data),
+    create: (data: any) => apiClient.post('/creative-works/', data),
+    update: (id: string, data: any) => apiClient.put(`/creative-works/${id}/`, data),
+    patch: (id: string, data: any) => apiClient.patch(`/creative-works/${id}/`, data),
     delete: (id: string) => apiClient.delete(`/creative-works/${id}/`),
+  },
+
+  // Student Submissions
+  studentSubmissions: {
+    list: (params?: any) => apiClient.get('/student-submissions/', params),
+    get: (id: string) => apiClient.get(`/student-submissions/${id}/`),
+    create: (data: any) => apiClient.post('/student-submissions/', data),
+    update: (id: string, data: any) => apiClient.put(`/student-submissions/${id}/`, data),
+    patch: (id: string, data: any) => apiClient.patch(`/student-submissions/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/student-submissions/${id}/`),
+    review: (id: string, data: any) => apiClient.post(`/student-submissions/${id}/review/`, data),
+    pending: () => apiClient.get('/student-submissions/pending/'),
+    approved: () => apiClient.get('/student-submissions/approved/'),
   },
 
   // Departments
@@ -408,13 +422,22 @@ export const api = {
 
   // Timetables
   timetables: {
-    list: (params?: any) => apiClient.get('/timetables/', params),
+    list: () => apiClient.get('/timetables/'),
     get: (id: string) => apiClient.get(`/timetables/${id}/`),
-    create: (data: FormData | any) => apiClient.post('/timetables/', data),
-    update: (id: string, data: FormData | any) => apiClient.put(`/timetables/${id}/`, data),
+    create: (data: any) => apiClient.post('/timetables/', data),
+    update: (id: string, data: any) => apiClient.put(`/timetables/${id}/`, data),
     delete: (id: string) => apiClient.delete(`/timetables/${id}/`),
-    byDepartment: (departmentId: string) => apiClient.get(`/timetables/by_department/?department_id=${departmentId}`),
     current: () => apiClient.get('/timetables/current/'),
+  },
+
+  // Users Management (for regular users only - not superadmins)
+  users: {
+    list: () => apiClient.get('/auth/users/'),
+    get: (id: string) => apiClient.get(`/auth/users/${id}/`),
+    create: (data: any) => apiClient.post('/auth/users/', data),
+    update: (id: string, data: any) => apiClient.put(`/auth/users/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/auth/users/${id}/`),
+    updateCredentials: (id: string, data: any) => apiClient.put(`/auth/users/${id}/credentials/`, data),
   },
 
   // Generic delete method

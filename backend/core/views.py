@@ -6,12 +6,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import (
     Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club,
-    AcademicService, Topper, CreativeWork, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable
+    AcademicService, Topper, CreativeWork, StudentSubmission, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable
 )
 from .serializers import (
     DepartmentSerializer, DepartmentGalleryImageSerializer, HeroImageSerializer, NoticeSerializer,
     MagazineSerializer, ClubSerializer, AcademicServiceSerializer,
-    TopperSerializer, CreativeWorkSerializer, CampusStatsSerializer, 
+    TopperSerializer, CreativeWorkSerializer, StudentSubmissionSerializer, CampusStatsSerializer, 
     NewsSerializer, ContactInfoSerializer, OfficeLocationSerializer, QuickContactInfoSerializer, TimetableSerializer
 )
 
@@ -129,6 +129,90 @@ class CreativeWorkViewSet(viewsets.ModelViewSet):
     filterset_fields = ['category', 'is_featured', 'is_active']
     search_fields = ['title', 'author_name', 'description']
     ordering_fields = ['created_at', 'is_featured']
+
+
+class StudentSubmissionViewSet(viewsets.ModelViewSet):
+    queryset = StudentSubmission.objects.all()
+    serializer_class = StudentSubmissionSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['status', 'category', 'department', 'is_featured', 'is_active']
+    search_fields = ['title', 'description', 'user__username', 'user__first_name', 'user__last_name']
+    ordering_fields = ['submitted_at', 'reviewed_at', 'status']
+
+    def get_permissions(self):
+        """
+        Instantiate and return the list of permissions for this view.
+        Students can create and view their own submissions.
+        Admins can view and modify all submissions.
+        """
+        if self.action == 'create':
+            permission_classes = [permissions.IsAuthenticated]
+        elif self.action in ['list', 'retrieve']:
+            permission_classes = [permissions.IsAuthenticated]
+        else:
+            permission_classes = [IsAdminOrReadOnly]
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        """
+        Filter submissions based on user role.
+        Students can only see their own submissions.
+        Admins can see all submissions.
+        """
+        user = self.request.user
+        if not user.is_authenticated:
+            return StudentSubmission.objects.none()
+        
+        # Check if user is admin
+        if user.is_staff or (hasattr(user, 'profile') and user.profile.role == 'admin'):
+            return StudentSubmission.objects.all()
+        
+        # Regular users can only see their own submissions
+        return StudentSubmission.objects.filter(user=user)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrReadOnly])
+    def review(self, request, pk=None):
+        """Review a submission (approve/reject)"""
+        submission = self.get_object()
+        action_type = request.data.get('action')  # 'approve' or 'reject'
+        is_featured = request.data.get('is_featured', False)
+        review_comments = request.data.get('review_comments', '')
+
+        if action_type not in ['approve', 'reject']:
+            return Response({'error': 'Action must be either "approve" or "reject"'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        from django.utils import timezone
+        # Map action_type to proper status values
+        status_mapping = {'approve': 'approved', 'reject': 'rejected'}
+        submission.status = status_mapping.get(action_type, action_type)
+        submission.is_featured = is_featured if action_type == 'approve' else False
+        submission.is_active = True if action_type == 'approve' else submission.is_active
+        submission.review_comments = review_comments
+        submission.reviewed_at = timezone.now()
+        submission.save()
+
+        return Response({
+            'message': f'Submission {action_type}d successfully',
+            'submission': StudentSubmissionSerializer(submission, context={'request': request}).data
+        })
+
+    @action(detail=False, methods=['get'])
+    def pending(self, request):
+        """Get all pending submissions (admin only)"""
+        if not (request.user.is_staff or (hasattr(request.user, 'profile') and request.user.profile.role == 'admin')):
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        
+        pending_submissions = StudentSubmission.objects.filter(status='pending')
+        serializer = self.get_serializer(pending_submissions, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def approved(self, request):
+        """Get all approved submissions"""
+        approved_submissions = StudentSubmission.objects.filter(status='approved', is_active=True)
+        serializer = self.get_serializer(approved_submissions, many=True)
+        return Response(serializer.data)
 
 
 class CampusStatsViewSet(viewsets.ModelViewSet):

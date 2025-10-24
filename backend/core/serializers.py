@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club,
-    AcademicService, Topper, CreativeWork, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable
+    AcademicService, Topper, CreativeWork, StudentSubmission, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable
 )
 
 class DepartmentGalleryImageSerializer(serializers.ModelSerializer):
@@ -138,18 +138,47 @@ class CreativeWorkSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
     def get_image_url(self, obj):
-        if obj.image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-        return None
+        """Get image URL - external URL if available, otherwise local image URL"""
+        return obj.get_image_url
     
     def get_content_url(self, obj):
-        if obj.file:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.file.url)
-        return None
+        """Get content URL - external URL if available, otherwise local file URL"""
+        return obj.get_content_url
+
+
+class StudentSubmissionSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    file_url = serializers.SerializerMethodField()
+    user_name = serializers.SerializerMethodField()
+    user_email = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = StudentSubmission
+        fields = '__all__'
+        read_only_fields = ['user', 'submitted_at', 'reviewed_at']
+    
+    def get_image_url(self, obj):
+        """Get image URL - external URL if available, otherwise local image URL"""
+        return obj.get_image_url
+    
+    def get_file_url(self, obj):
+        """Get file URL - external URL if available, otherwise local file URL"""
+        return obj.get_file_url
+    
+    def get_user_name(self, obj):
+        """Get user's full name or username"""
+        return obj.user.get_full_name() or obj.user.username
+    
+    def get_user_email(self, obj):
+        """Get user's email"""
+        return obj.user.email
+    
+    def create(self, validated_data):
+        """Set the user from the request context"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            validated_data['user'] = request.user
+        return super().create(validated_data)
 
 
 class CampusStatsSerializer(serializers.ModelSerializer):

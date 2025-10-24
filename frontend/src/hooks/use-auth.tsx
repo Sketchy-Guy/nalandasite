@@ -22,9 +22,9 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any; user?: User; profile?: Profile }>;
   signUp: (email: string, password: string, fullName: string, role: string) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
+  signOut: (silent?: boolean) => Promise<void>;
   refreshProfile: () => Promise<void>;
   isAdmin: boolean;
   userRole: string | null;
@@ -81,12 +81,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserRole(data.profile?.role || null);
       setIsAdmin(data.profile?.role === 'admin');
 
-      toast({
-        title: 'Welcome back!',
-        description: 'You have been signed in successfully.',
-      });
+      // Don't show toast here - let the calling component handle success message
+      // This prevents "Welcome back!" from showing when role validation fails
 
-      return { error: null };
+      return { error: null, user: data.user, profile: data.profile };
     } catch (error: any) {
       // Check if it's an authentication error
       const isAuthError = error.message?.toLowerCase().includes('login failed') || 
@@ -152,7 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signOut = async () => {
+  const signOut = async (silent = false) => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
@@ -163,13 +161,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUserRole(null);
     setIsAdmin(false);
 
-    toast({
-      title: 'Signed Out',
-      description: 'You have been signed out successfully.',
-    });
+    if (!silent) {
+      toast({
+        title: 'Signed Out',
+        description: 'You have been signed out successfully.',
+      });
 
-    // Redirect to login page
-    window.location.href = '/admin/login';
+      // Redirect to homepage
+      window.location.href = '/';
+    }
   };
 
   const value = {

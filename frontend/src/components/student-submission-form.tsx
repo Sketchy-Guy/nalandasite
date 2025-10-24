@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,10 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Upload, X, Instagram, Youtube, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface StudentSubmissionFormProps {
   isOpen: boolean;
@@ -23,12 +25,21 @@ export function StudentSubmissionForm({ isOpen, onClose }: StudentSubmissionForm
     title: "",
     description: "",
     category: "",
-    department: ""
+    department: "",
+    instagram_url: "",
+    youtube_url: ""
   });
   const [files, setFiles] = useState<{
     image?: File;
     content?: File;
   }>({});
+  
+  const [socialMediaPreview, setSocialMediaPreview] = useState<{
+    type: 'instagram' | 'youtube' | null;
+    url: string;
+    embedId?: string;
+    isPrivate?: boolean;
+  }>({ type: null, url: '' });
 
   const categories = [
     "Digital Art",
@@ -43,16 +54,92 @@ export function StudentSubmissionForm({ isOpen, onClose }: StudentSubmissionForm
     "Startup"
   ];
 
-  const departments = [
-    "Computer Science & Engineering",
-    "Information Technology", 
-    "Mechanical Engineering",
-    "Electrical Engineering",
-    "Civil Engineering",
-    "Master of Computer Applications",
-    "Bachelor of Computer Applications",
-    "Master of Business Administration"
-  ];
+  // Fetch departments from API
+  const { data: departments = [], isLoading: loadingDepartments } = useQuery({
+    queryKey: ['departments'],
+    queryFn: async () => {
+      const response = await api.departments.list();
+      return response.results || response;
+    },
+  });
+
+  const queryClient = useQueryClient();
+
+  // Utility functions for social media URL handling
+  const extractInstagramId = (url: string) => {
+    if (!url || typeof url !== 'string') return null;
+    
+    const patterns = [
+      /(?:https?:\/\/)?(?:www\.)?instagram\.com\/p\/([A-Za-z0-9_-]+)/,
+      /(?:https?:\/\/)?(?:www\.)?instagram\.com\/reel\/([A-Za-z0-9_-]+)/,
+      /(?:https?:\/\/)?(?:www\.)?instagram\.com\/tv\/([A-Za-z0-9_-]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) return match[1];
+    }
+    return null;
+  };
+
+  const extractYouTubeId = (url: string) => {
+    if (!url || typeof url !== 'string') return null;
+    
+    const patterns = [
+      /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([A-Za-z0-9_-]+)/,
+      /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([A-Za-z0-9_-]+)/,
+      /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([A-Za-z0-9_-]+)/,
+      /(?:https?:\/\/)?(?:www\.)?youtube\.com\/v\/([A-Za-z0-9_-]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) return match[1];
+    }
+    return null;
+  };
+
+  const updateSocialMediaPreview = () => {
+    // Prioritize Instagram if both are provided
+    if (formData.instagram_url) {
+      const instagramId = extractInstagramId(formData.instagram_url);
+      if (instagramId) {
+        setSocialMediaPreview({
+          type: 'instagram',
+          url: formData.instagram_url,
+          embedId: instagramId
+        });
+      } else {
+        setSocialMediaPreview({
+          type: 'instagram',
+          url: formData.instagram_url,
+          isPrivate: true
+        });
+      }
+    } else if (formData.youtube_url) {
+      const youtubeId = extractYouTubeId(formData.youtube_url);
+      if (youtubeId) {
+        setSocialMediaPreview({
+          type: 'youtube',
+          url: formData.youtube_url,
+          embedId: youtubeId
+        });
+      } else {
+        setSocialMediaPreview({
+          type: 'youtube',
+          url: formData.youtube_url,
+          isPrivate: true
+        });
+      }
+    } else {
+      setSocialMediaPreview({ type: null, url: '' });
+    }
+  };
+
+  // Update preview when URLs change
+  useEffect(() => {
+    updateSocialMediaPreview();
+  }, [formData.instagram_url, formData.youtube_url]);
 
   const handleFileChange = (type: 'image' | 'content', file: File | null) => {
     setFiles(prev => ({
@@ -61,55 +148,13 @@ export function StudentSubmissionForm({ isOpen, onClose }: StudentSubmissionForm
     }));
   };
 
-  const uploadFile = async (file: File, folder: string) => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user?.id}/${folder}/${Date.now()}.${fileExt}`;
-    
-    const { data, error } = await supabase.storage
-      .from('student-submissions')
-      .upload(fileName, file);
-
-    if (error) throw error;
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('student-submissions')
-      .getPublicUrl(fileName);
-    
-    return publicUrl;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      let imageUrl = null;
-      let contentUrl = null;
-
-      // Upload files if present
-      if (files.image) {
-        imageUrl = await uploadFile(files.image, 'images');
-      }
-      if (files.content) {
-        contentUrl = await uploadFile(files.content, 'content');
-      }
-
-      // Submit to database
-      const { error } = await supabase
-        .from('student_submissions')
-        .insert({
-          user_id: user.id,
-          title: formData.title,
-          description: formData.description,
-          category: formData.category,
-          department: formData.department,
-          image_url: imageUrl,
-          file_url: contentUrl
-        });
-
-      if (error) throw error;
-
+  // Submission mutation
+  const submitMutation = useMutation({
+    mutationFn: async (submissionData: FormData) => {
+      return await api.studentSubmissions.create(submissionData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['student-submissions'] });
       toast.success("Submission successful! Your work is pending review.");
       
       // Reset form
@@ -117,14 +162,54 @@ export function StudentSubmissionForm({ isOpen, onClose }: StudentSubmissionForm
         title: "",
         description: "",
         category: "",
-        department: ""
+        department: "",
+        instagram_url: "",
+        youtube_url: ""
       });
       setFiles({});
       onClose();
-      
-    } catch (error) {
+    },
+    onError: (error: any) => {
       console.error('Error submitting work:', error);
       toast.error("Failed to submit your work. Please try again.");
+    }
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      // Create FormData for file upload
+      const submissionData = new FormData();
+      submissionData.append('title', formData.title);
+      submissionData.append('description', formData.description);
+      submissionData.append('category', formData.category);
+      submissionData.append('department', formData.department);
+      
+      // Add social media URLs if present
+      if (formData.instagram_url) {
+        submissionData.append('instagram_url', formData.instagram_url);
+      }
+      if (formData.youtube_url) {
+        submissionData.append('youtube_url', formData.youtube_url);
+      }
+      
+      // Add files if present
+      if (files.image) {
+        submissionData.append('image', files.image);
+      }
+      if (files.content) {
+        submissionData.append('file', files.content);
+      }
+
+      // Submit using mutation
+      submitMutation.mutate(submissionData);
+      
+    } catch (error) {
+      console.error('Error preparing submission:', error);
+      toast.error("Failed to prepare submission. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -177,11 +262,15 @@ export function StudentSubmissionForm({ isOpen, onClose }: StudentSubmissionForm
                 <SelectValue placeholder="Select your department" />
               </SelectTrigger>
               <SelectContent>
-                {departments.map((dept) => (
-                  <SelectItem key={dept} value={dept}>
-                    {dept}
-                  </SelectItem>
-                ))}
+                {loadingDepartments ? (
+                  <SelectItem value="" disabled>Loading departments...</SelectItem>
+                ) : (
+                  departments.map((dept: any) => (
+                    <SelectItem key={dept.id} value={dept.name}>
+                      {dept.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -198,94 +287,205 @@ export function StudentSubmissionForm({ isOpen, onClose }: StudentSubmissionForm
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Cover Image</CardTitle>
-                <CardDescription>Upload a preview image (optional)</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange('image', e.target.files?.[0] || null)}
-                    className="hidden"
-                    id="image-upload"
-                  />
-                  <label htmlFor="image-upload" className="cursor-pointer">
-                    {files.image ? (
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm truncate">{files.image.name}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleFileChange('image', null);
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div>
-                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">Click to upload image</p>
-                      </div>
-                    )}
-                  </label>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Content File</CardTitle>
-                <CardDescription>Upload your work file (optional)</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
-                  <input
-                    type="file"
-                    onChange={(e) => handleFileChange('content', e.target.files?.[0] || null)}
-                    className="hidden"
-                    id="content-upload"
-                  />
-                  <label htmlFor="content-upload" className="cursor-pointer">
-                    {files.content ? (
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm truncate">{files.content.name}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleFileChange('content', null);
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div>
-                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">Click to upload file</p>
-                      </div>
-                    )}
-                  </label>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-2">
+              <Label htmlFor="instagram_url">Instagram URL *</Label>
+              <Input
+                id="instagram_url"
+                value={formData.instagram_url}
+                onChange={(e) => setFormData(prev => ({ ...prev, instagram_url: e.target.value }))}
+                placeholder="Enter Instagram post/reel URL"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="youtube_url">YouTube URL *</Label>
+              <Input
+                id="youtube_url"
+                value={formData.youtube_url}
+                onChange={(e) => setFormData(prev => ({ ...prev, youtube_url: e.target.value }))}
+                placeholder="Enter YouTube video URL"
+              />
+            </div>
           </div>
+          <p className="text-sm text-muted-foreground">
+            * Please provide at least one social media URL (Instagram or YouTube)
+          </p>
+
+          {/* Social Media Preview or File Upload Section */}
+          {socialMediaPreview.type ? (
+            <div className="space-y-4">
+              {/* Privacy Warning */}
+              {socialMediaPreview.isPrivate && (
+                <Alert className="border-orange-200 bg-orange-50">
+                  <AlertCircle className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="text-orange-800">
+                    The {socialMediaPreview.type === 'instagram' ? 'Instagram' : 'YouTube'} content appears to be private or the URL format is invalid. 
+                    Please make sure your {socialMediaPreview.type === 'instagram' ? 'Instagram post' : 'YouTube video'} is public for proper preview.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Social Media Preview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {socialMediaPreview.type === 'instagram' ? (
+                      <Instagram className="h-5 w-5 text-pink-600" />
+                    ) : (
+                      <Youtube className="h-5 w-5 text-red-600" />
+                    )}
+                    {socialMediaPreview.type === 'instagram' ? 'Instagram' : 'YouTube'} Preview
+                  </CardTitle>
+                  <CardDescription>
+                    {socialMediaPreview.type === 'instagram' 
+                      ? 'Instagram post will be embedded' 
+                      : 'YouTube video will be embedded'
+                    }
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {socialMediaPreview.embedId && !socialMediaPreview.isPrivate ? (
+                    <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                      {socialMediaPreview.type === 'instagram' ? (
+                        <div className="w-full h-full relative">
+                          <iframe
+                            src={`https://www.instagram.com/p/${socialMediaPreview.embedId}/embed/`}
+                            title="Instagram post preview"
+                            className="w-full h-full border-0"
+                            frameBorder="0"
+                            scrolling="no"
+                            onError={() => {
+                              // Fallback to styled preview if embed fails
+                              setSocialMediaPreview(prev => ({ ...prev, isPrivate: true }));
+                            }}
+                          />
+                          {/* Fallback overlay for loading */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 flex items-center justify-center opacity-20 pointer-events-none">
+                            <div className="text-white text-center">
+                              <Instagram className="h-8 w-8 mx-auto mb-1" />
+                              <p className="text-xs">Loading...</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <iframe
+                          src={`https://www.youtube.com/embed/${socialMediaPreview.embedId}`}
+                          title="YouTube video preview"
+                          className="w-full h-full"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="aspect-video rounded-lg bg-muted flex items-center justify-center">
+                      <div className="text-center text-muted-foreground">
+                        {socialMediaPreview.type === 'instagram' ? (
+                          <Instagram className="h-12 w-12 mx-auto mb-2" />
+                        ) : (
+                          <Youtube className="h-12 w-12 mx-auto mb-2" />
+                        )}
+                        <p className="text-sm">Preview not available</p>
+                        <p className="text-xs">Check URL format and privacy settings</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            /* File Upload Section - Only shown when no social media URLs */
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Cover Image</CardTitle>
+                  <CardDescription>Upload a preview image (optional)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange('image', e.target.files?.[0] || null)}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label htmlFor="image-upload" className="cursor-pointer">
+                      {files.image ? (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm truncate">{files.image.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleFileChange('image', null);
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div>
+                          <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">Click to upload image</p>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Content File</CardTitle>
+                  <CardDescription>Upload your work file (optional)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
+                    <input
+                      type="file"
+                      onChange={(e) => handleFileChange('content', e.target.files?.[0] || null)}
+                      className="hidden"
+                      id="content-upload"
+                    />
+                    <label htmlFor="content-upload" className="cursor-pointer">
+                      {files.content ? (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm truncate">{files.content.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleFileChange('content', null);
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div>
+                          <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">Click to upload file</p>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !formData.title || !formData.category || !formData.department}>
-              {loading ? "Submitting..." : "Submit Work"}
+            <Button type="submit" disabled={loading || submitMutation.isPending || !formData.title || !formData.category || !formData.department || (!formData.instagram_url && !formData.youtube_url)}>
+              {loading || submitMutation.isPending ? "Submitting..." : "Submit Work"}
             </Button>
           </div>
         </form>

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Department, HeroImage, Notice, Magazine, Club, 
-    AcademicService, Topper, CreativeWork, Timetable
+    AcademicService, Topper, CreativeWork, StudentSubmission, Timetable
 )
 
 @admin.register(Department)
@@ -70,6 +70,36 @@ class CreativeWorkAdmin(admin.ModelAdmin):
     list_filter = ['category', 'is_featured', 'is_active', 'created_at']
     search_fields = ['title', 'author_name', 'description']
     ordering = ['-is_featured', '-created_at']
+
+
+@admin.register(StudentSubmission)
+class StudentSubmissionAdmin(admin.ModelAdmin):
+    list_display = ['title', 'user', 'category', 'status', 'is_featured', 'submitted_at', 'reviewed_at']
+    list_filter = ['status', 'category', 'department', 'is_featured', 'is_active', 'submitted_at']
+    search_fields = ['title', 'description', 'user__username', 'user__first_name', 'user__last_name']
+    ordering = ['-submitted_at']
+    readonly_fields = ['submitted_at', 'reviewed_at']
+    
+    fieldsets = (
+        ('Submission Details', {
+            'fields': ('title', 'description', 'category', 'department', 'user')
+        }),
+        ('Files & Media', {
+            'fields': ('image', 'file', 'image_url', 'file_url')
+        }),
+        ('Review Information', {
+            'fields': ('status', 'is_featured', 'review_comments', 'submitted_at', 'reviewed_at')
+        }),
+        ('Display Settings', {
+            'fields': ('is_active',)
+        })
+    )
+    
+    def save_model(self, request, obj, form, change):
+        if change and 'status' in form.changed_data and obj.status in ['approved', 'rejected']:
+            from django.utils import timezone
+            obj.reviewed_at = timezone.now()
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Timetable)

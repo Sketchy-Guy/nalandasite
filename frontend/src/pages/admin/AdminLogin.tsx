@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Shield, Eye, EyeOff, ArrowRight, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/use-auth';
 import { useNavigate } from 'react-router-dom';
 import nitLogo from '../../assets/nit-logo.png';
@@ -16,26 +17,55 @@ export default function AdminLogin() {
   });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [accessDenied, setAccessDenied] = useState<{
+    show: boolean;
+    userRole: string;
+    email: string;
+  }>({ show: false, userRole: '', email: '' });
+  const [countdown, setCountdown] = useState(5);
   
-  const { signIn, user, isAdmin, loading: authLoading } = useAuth();
+  const { signIn, signOut, user, isAdmin, userRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already logged in as admin
+  // Handle auth state changes
   useEffect(() => {
-    if (!authLoading && user && isAdmin) {
-      navigate('/admin');
+    if (!authLoading && user) {
+      if (isAdmin) {
+        navigate('/admin');
+      } else if (userRole && userRole !== 'admin') {
+        // User logged in successfully but doesn't have admin access
+        setAccessDenied({
+          show: true,
+          userRole: userRole,
+          email: user.email || formData.email
+        });
+        setCountdown(5);
+        
+        // Start countdown
+        const countdownInterval = setInterval(() => {
+          setCountdown(prev => {
+            if (prev <= 1) {
+              clearInterval(countdownInterval);
+              signOut();
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+
+        return () => clearInterval(countdownInterval);
+      }
     }
-  }, [user, isAdmin, authLoading, navigate]);
+  }, [user, isAdmin, userRole, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setAccessDenied({ show: false, userRole: '', email: '' });
 
     try {
       const { error } = await signIn(formData.email, formData.password);
-      if (!error) {
-        // Auth hook will handle the redirect via useEffect above
-      }
+      // useEffect will handle the admin access check and redirect
     } catch (error) {
       console.error('Admin login error:', error);
     } finally {
@@ -87,6 +117,31 @@ export default function AdminLogin() {
           </CardHeader>
           
           <CardContent className="space-y-6">
+            {accessDenied.show && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4"
+              >
+                <Alert className="border-red-300 bg-red-50 shadow-lg">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  <AlertDescription className="text-red-900">
+                    <div className="space-y-2">
+                      <div className="font-semibold">
+                        <strong className="capitalize">{accessDenied.userRole}</strong> does not have admin access.
+                      </div>
+                      <div className="text-sm">
+                        Trying to login again will send the current entered email ({accessDenied.email}) to Administrative office.
+                      </div>
+                      <div className="text-xs bg-red-100 px-2 py-1 rounded border border-red-200 inline-block">
+                        Redirecting in {countdown} seconds...
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              </motion.div>
+            )}
+
             <motion.form 
               onSubmit={handleSubmit}
               initial={{ opacity: 0 }}

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Department, HeroImage, Notice, Magazine, Club, 
+    Department, HeroImage, Notice, Magazine, Club, CampusEvent,
     AcademicService, Topper, CreativeWork, StudentSubmission, Timetable
 )
 
@@ -45,10 +45,35 @@ class MagazineAdmin(admin.ModelAdmin):
 
 @admin.register(Club)
 class ClubAdmin(admin.ModelAdmin):
-    list_display = ['name', 'member_count', 'event_count', 'is_active', 'created_at']
+    list_display = ['name', 'member_count', 'event_count', 'website_link', 'is_active', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'description']
     ordering = ['name']
+    fields = ['name', 'description', 'icon', 'member_count', 'event_count', 'website_link', 'is_active']
+
+
+@admin.register(CampusEvent)
+class CampusEventAdmin(admin.ModelAdmin):
+    list_display = ['title', 'event_type', 'start_date', 'organizer', 'club', 'is_featured', 'is_active', 'created_at']
+    list_filter = ['event_type', 'is_featured', 'is_active', 'start_date', 'club', 'created_at']
+    search_fields = ['title', 'description', 'organizer', 'venue']
+    ordering = ['-start_date', '-created_at']
+    
+    fieldsets = (
+        ('Event Details', {
+            'fields': ('title', 'description', 'event_type', 'club')
+        }),
+        ('Schedule & Location', {
+            'fields': ('start_date', 'end_date', 'venue', 'organizer')
+        }),
+        ('Registration', {
+            'fields': ('registration_required', 'registration_url', 'max_participants')
+        }),
+        ('Media & Display', {
+            'fields': ('image_url', 'is_featured', 'is_active')
+        })
+    )
+
 
 @admin.register(AcademicService)
 class AcademicServiceAdmin(admin.ModelAdmin):

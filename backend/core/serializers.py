@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club,
+    Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club, CampusEvent,
     AcademicService, Topper, CreativeWork, StudentSubmission, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable
 )
 
@@ -106,9 +106,24 @@ class MagazineSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 class ClubSerializer(serializers.ModelSerializer):
+    events_count = serializers.SerializerMethodField()
+    
     class Meta:
         model = Club
         fields = '__all__'
+    
+    def get_events_count(self, obj):
+        """Get count of active events for this club"""
+        return obj.events.filter(is_active=True).count()
+
+
+class CampusEventSerializer(serializers.ModelSerializer):
+    club_name = serializers.CharField(source='club.name', read_only=True)
+    
+    class Meta:
+        model = CampusEvent
+        fields = '__all__'
+
 
 class AcademicServiceSerializer(serializers.ModelSerializer):
     class Meta:

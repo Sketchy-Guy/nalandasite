@@ -5,12 +5,12 @@ from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import (
-    Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club,
+    Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club, CampusEvent,
     AcademicService, Topper, CreativeWork, StudentSubmission, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable
 )
 from .serializers import (
     DepartmentSerializer, DepartmentGalleryImageSerializer, HeroImageSerializer, NoticeSerializer,
-    MagazineSerializer, ClubSerializer, AcademicServiceSerializer,
+    MagazineSerializer, ClubSerializer, CampusEventSerializer, AcademicServiceSerializer,
     TopperSerializer, CreativeWorkSerializer, StudentSubmissionSerializer, CampusStatsSerializer, 
     NewsSerializer, ContactInfoSerializer, OfficeLocationSerializer, QuickContactInfoSerializer, TimetableSerializer
 )
@@ -102,6 +102,55 @@ class ClubViewSet(viewsets.ModelViewSet):
     filterset_fields = ['is_active']
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'member_count', 'event_count']
+    
+    @action(detail=True, methods=['get'])
+    def events(self, request, pk=None):
+        """Get all events for a specific club"""
+        club = self.get_object()
+        events = club.events.filter(is_active=True).order_by('-start_date')
+        serializer = CampusEventSerializer(events, many=True, context={'request': request})
+        return Response(serializer.data)
+
+
+class CampusEventViewSet(viewsets.ModelViewSet):
+    queryset = CampusEvent.objects.filter(is_active=True)
+    serializer_class = CampusEventSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['event_type', 'is_featured', 'is_active', 'club']
+    search_fields = ['title', 'description', 'organizer', 'venue']
+    ordering_fields = ['start_date', 'created_at', 'title']
+    
+    @action(detail=False, methods=['get'])
+    def upcoming(self, request):
+        """Get upcoming events"""
+        from django.utils import timezone
+        current_date = timezone.now().date()
+        
+        events = self.queryset.filter(
+            start_date__gte=current_date
+        ).order_by('start_date')
+        
+        serializer = self.get_serializer(events, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def featured(self, request):
+        """Get featured events"""
+        events = self.queryset.filter(is_featured=True).order_by('-start_date')
+        serializer = self.get_serializer(events, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def by_club(self, request):
+        """Get events filtered by club"""
+        club_id = request.query_params.get('club_id')
+        if club_id:
+            events = self.queryset.filter(club__id=club_id).order_by('-start_date')
+            serializer = self.get_serializer(events, many=True)
+            return Response(serializer.data)
+        return Response({'error': 'club_id parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class AcademicServiceViewSet(viewsets.ModelViewSet):
     queryset = AcademicService.objects.filter(is_active=True)

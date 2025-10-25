@@ -32,6 +32,7 @@ const Header = () => {
   const { user, signOut, isAdmin } = useAuth();
 
   const academicsSubMenu = [
+    { title: "Toppers", href: "/academics/toppers" },
     { title: "Timetable", href: "/academics/timetable" },
     { title: "Fees", href: "/academics/fees" },
     { title: "Scholarships & Financial Assistance", href: "/academics/scholarships" },

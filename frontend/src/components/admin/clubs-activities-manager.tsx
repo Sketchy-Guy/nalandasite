@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +32,7 @@ interface Club {
   member_count: number;
   event_count: number;
   is_active: boolean;
+  website_link?: string;
   created_at: string;
   updated_at: string;
 }
@@ -51,6 +52,8 @@ interface Event {
   image_url?: string;
   is_featured: boolean;
   is_active: boolean;
+  club?: string;
+  club_name?: string;
   created_at: string;
 }
 
@@ -67,7 +70,8 @@ export default function ClubsActivitiesManager() {
     description: '',
     icon: '',
     member_count: 0,
-    event_count: 0
+    event_count: 0,
+    website_link: ''
   });
   const [eventFormData, setEventFormData] = useState({
     title: '',
@@ -91,21 +95,31 @@ export default function ClubsActivitiesManager() {
 
   const fetchData = async () => {
     try {
-      const [clubsResponse, eventsResponse] = await Promise.all([
-        supabase.from('clubs').select('*').order('name'),
-        supabase.from('campus_events').select('*').order('start_date', { ascending: false })
+      const [clubsData, eventsData] = await Promise.all([
+        api.clubs.list(),
+        api.campusEvents.list()
       ]);
 
-      if (clubsResponse.error) throw clubsResponse.error;
-      if (eventsResponse.error) throw eventsResponse.error;
-
-      setClubs(clubsResponse.data || []);
-      setEvents(eventsResponse.data || []);
+      setClubs(clubsData.results || clubsData || []);
+      setEvents(eventsData.results || eventsData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error constructor:', error?.constructor?.name);
+      console.error('Error keys:', Object.keys(error || {}));
+      
+      let errorMessage = 'Unknown error';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        errorMessage = JSON.stringify(error);
+      }
+      
       toast({
         title: 'Error',
-        description: 'Failed to fetch clubs and activities data',
+        description: `Failed to fetch clubs and activities data: ${errorMessage}`,
         variant: 'destructive'
       });
     } finally {
@@ -119,7 +133,8 @@ export default function ClubsActivitiesManager() {
       description: '',
       icon: '',
       member_count: 0,
-      event_count: 0
+      event_count: 0,
+      website_link: ''
     });
     setEditingClub(null);
   };
@@ -149,7 +164,8 @@ export default function ClubsActivitiesManager() {
       description: club.description || '',
       icon: club.icon,
       member_count: club.member_count,
-      event_count: club.event_count
+      event_count: club.event_count,
+      website_link: club.website_link || ''
     });
     setClubDialogOpen(true);
   };
@@ -179,26 +195,22 @@ export default function ClubsActivitiesManager() {
     try {
       const data = {
         name: clubFormData.name,
-        description: clubFormData.description || null,
+        description: clubFormData.description || '',
         icon: clubFormData.icon,
         member_count: clubFormData.member_count,
         event_count: clubFormData.event_count,
+        website_link: clubFormData.website_link || '',
         is_active: true
       };
 
-      let result;
+      let response;
       if (editingClub) {
-        result = await supabase
-          .from('clubs')
-          .update(data)
-          .eq('id', editingClub.id);
+        response = await api.clubs.update(editingClub.id, data);
       } else {
-        result = await supabase
-          .from('clubs')
-          .insert([data]);
+        response = await api.clubs.create(data);
       }
 
-      if (result.error) throw result.error;
+      if (!response.ok) throw new Error('Failed to save club');
 
       toast({
         title: 'Success',
@@ -224,33 +236,28 @@ export default function ClubsActivitiesManager() {
     try {
       const data = {
         title: eventFormData.title,
-        description: eventFormData.description || null,
+        description: eventFormData.description || '',
         event_type: eventFormData.event_type,
         start_date: eventFormData.start_date || null,
         end_date: eventFormData.end_date || null,
-        venue: eventFormData.venue || null,
-        organizer: eventFormData.organizer || null,
+        venue: eventFormData.venue || '',
+        organizer: eventFormData.organizer || '',
         max_participants: eventFormData.max_participants ? parseInt(eventFormData.max_participants) : null,
         registration_required: eventFormData.registration_required,
-        registration_url: eventFormData.registration_url || null,
-        image_url: eventFormData.image_url || null,
+        registration_url: eventFormData.registration_url || '',
+        image_url: eventFormData.image_url || '',
         is_featured: eventFormData.is_featured,
         is_active: true
       };
 
-      let result;
+      let response;
       if (editingEvent) {
-        result = await supabase
-          .from('campus_events')
-          .update(data)
-          .eq('id', editingEvent.id);
+        response = await api.campusEvents.update(editingEvent.id, data);
       } else {
-        result = await supabase
-          .from('campus_events')
-          .insert([data]);
+        response = await api.campusEvents.create(data);
       }
 
-      if (result.error) throw result.error;
+      if (!response.ok) throw new Error('Failed to save event');
 
       toast({
         title: 'Success',
@@ -274,8 +281,8 @@ export default function ClubsActivitiesManager() {
     if (!confirm('Are you sure you want to delete this club?')) return;
 
     try {
-      const { error } = await supabase.from('clubs').delete().eq('id', id);
-      if (error) throw error;
+      const response = await api.clubs.delete(id);
+      if (!response.ok) throw new Error('Failed to delete club');
 
       toast({
         title: 'Success',
@@ -296,8 +303,8 @@ export default function ClubsActivitiesManager() {
     if (!confirm('Are you sure you want to delete this event?')) return;
 
     try {
-      const { error } = await supabase.from('campus_events').delete().eq('id', id);
-      if (error) throw error;
+      const response = await api.campusEvents.delete(id);
+      if (!response.ok) throw new Error('Failed to delete event');
 
       toast({
         title: 'Success',
@@ -410,7 +417,7 @@ export default function ClubsActivitiesManager() {
                   Add Club
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>
                     {editingClub ? 'Edit Club' : 'Add New Club'}
@@ -442,6 +449,16 @@ export default function ClubsActivitiesManager() {
                       onChange={(e) => setClubFormData({...clubFormData, icon: e.target.value})}
                       placeholder="e.g., Users, Trophy, Music"
                       required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="club-website">Website Link (Optional)</Label>
+                    <Input
+                      id="club-website"
+                      type="url"
+                      value={clubFormData.website_link}
+                      onChange={(e) => setClubFormData({...clubFormData, website_link: e.target.value})}
+                      placeholder="https://example.com"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -546,7 +563,7 @@ export default function ClubsActivitiesManager() {
                   Add Event
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>
                     {editingEvent ? 'Edit Event' : 'Add New Event'}

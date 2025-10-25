@@ -7,7 +7,6 @@ import ToppersBoard from "@/components/toppers-board";
 import CreativePanel from "@/components/creative-panel";
 import MagazinesNewsletters from "@/components/magazines-newsletters";
 import ClubsActivities from "@/components/clubs-activities";
-import AcademicServices from "@/components/academic-services";
 import Footer from "@/components/footer";
 
 const Index = () => {
@@ -23,7 +22,6 @@ const Index = () => {
         <ToppersBoard />
         <CreativePanel />
         <ClubsActivities />
-        <AcademicServices />
       </main>
       <Footer />
     </div>

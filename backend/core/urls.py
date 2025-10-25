@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     DepartmentViewSet, DepartmentGalleryImageViewSet, HeroImageViewSet, NoticeViewSet,
-    MagazineViewSet, ClubViewSet, AcademicServiceViewSet,
+    MagazineViewSet, ClubViewSet, CampusEventViewSet, AcademicServiceViewSet,
     TopperViewSet, CreativeWorkViewSet, StudentSubmissionViewSet, CampusStatsViewSet,
     NewsViewSet, ContactInfoViewSet, OfficeLocationViewSet, QuickContactInfoViewSet, TimetableViewSet
 )
@@ -14,6 +14,7 @@ router.register(r'hero-images', HeroImageViewSet)
 router.register(r'notices', NoticeViewSet)
 router.register(r'magazines', MagazineViewSet)
 router.register(r'clubs', ClubViewSet)
+router.register(r'campus-events', CampusEventViewSet)
 router.register(r'academic-services', AcademicServiceViewSet)
 router.register(r'toppers', TopperViewSet)
 router.register(r'creative-works', CreativeWorkViewSet)

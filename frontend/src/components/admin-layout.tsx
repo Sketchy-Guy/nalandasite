@@ -18,7 +18,6 @@ import {
   LayoutDashboard,
   FileText,
   Image,
-  GraduationCap,
   Building2,
   Users,
   Settings,
@@ -144,12 +143,6 @@ const navigationItems = [
     title: "Academic Excellence",
     icon: Trophy,
     url: "/admin/academic-excellence",
-    group: "Academic Content"
-  },
-  {
-    title: "Academic Services",
-    icon: GraduationCap,
-    url: "/admin/academic-services",
     group: "Academic Content"
   },
   {
@@ -379,7 +372,7 @@ export default function AdminLayout() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={signOut}
+                onClick={() => signOut()}
                 className="flex items-center gap-1 lg:gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 text-xs lg:text-sm px-2 lg:px-3"
               >
                 <LogOut className="h-3 w-3 lg:h-4 lg:w-4" />

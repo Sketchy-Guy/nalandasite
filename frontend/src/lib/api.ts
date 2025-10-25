@@ -137,23 +137,24 @@ class ApiClient {
 
   // Generic CRUD methods
   async get(endpoint: string, params?: Record<string, any>) {
-    const url = new URL(`${this.baseURL}${endpoint}`);
+    let url = endpoint;
     if (params) {
+      const searchParams = new URLSearchParams();
       Object.keys(params).forEach(key => {
         if (params[key] !== undefined && params[key] !== null) {
-          url.searchParams.append(key, params[key]);
+          searchParams.append(key, params[key]);
         }
       });
+      if (searchParams.toString()) {
+        url += `?${searchParams.toString()}`;
+      }
     }
 
-    const response = await fetch(url.toString(), {
-      headers: this.token ? { 'Authorization': `Bearer ${this.token}` } : {},
-    });
-
+    const response = await this.request(url, { method: 'GET' });
     if (response.ok) {
       return response.json();
     }
-    throw new Error(`GET ${endpoint} failed`);
+    throw new Error(`GET ${endpoint} failed with status ${response.status}`);
   }
 
   async post(endpoint: string, data: any) {
@@ -296,6 +297,19 @@ export const api = {
     create: (data: any) => apiClient.post('/clubs/', data),
     update: (id: string, data: any) => apiClient.put(`/clubs/${id}/`, data),
     delete: (id: string) => apiClient.delete(`/clubs/${id}/`),
+    events: (id: string) => apiClient.get(`/clubs/${id}/events/`),
+  },
+
+  // Campus Events
+  campusEvents: {
+    list: (params?: any) => apiClient.get('/campus-events/', params),
+    get: (id: string) => apiClient.get(`/campus-events/${id}/`),
+    create: (data: any) => apiClient.post('/campus-events/', data),
+    update: (id: string, data: any) => apiClient.put(`/campus-events/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/campus-events/${id}/`),
+    upcoming: () => apiClient.get('/campus-events/upcoming/'),
+    featured: () => apiClient.get('/campus-events/featured/'),
+    byClub: (clubId: string) => apiClient.get(`/campus-events/by_club/?club_id=${clubId}`),
   },
 
   // Academic Services

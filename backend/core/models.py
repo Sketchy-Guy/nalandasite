@@ -243,12 +243,50 @@ class Club(BaseModel):
     icon = models.CharField(max_length=100)  # Icon name for frontend
     member_count = models.IntegerField(default=0)
     event_count = models.IntegerField(default=0)
+    website_link = models.URLField(blank=True, null=True, help_text="Club website or social media link")
 
     def __str__(self):
         return self.name
 
     class Meta:
         ordering = ['name']
+
+
+class CampusEvent(BaseModel):
+    """Campus events and activities"""
+    EVENT_TYPE_CHOICES = [
+        ('festival', 'Festival'),
+        ('competition', 'Competition'),
+        ('workshop', 'Workshop'),
+        ('seminar', 'Seminar'),
+        ('cultural', 'Cultural Event'),
+        ('sports', 'Sports Event'),
+        ('technical', 'Technical Event'),
+        ('club_activity', 'Club Activity'),
+        ('notice', 'Notice/Announcement'),
+    ]
+    
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    event_type = models.CharField(max_length=50, choices=EVENT_TYPE_CHOICES, default='festival')
+    start_date = models.DateField(blank=True, null=True)
+    end_date = models.DateField(blank=True, null=True)
+    venue = models.CharField(max_length=200, blank=True, null=True)
+    organizer = models.CharField(max_length=200, blank=True, null=True, help_text="Organizing club or department")
+    max_participants = models.IntegerField(blank=True, null=True)
+    registration_required = models.BooleanField(default=False)
+    registration_url = models.URLField(blank=True, null=True)
+    image_url = models.URLField(blank=True, null=True)
+    is_featured = models.BooleanField(default=False, help_text="Show in featured section")
+    club = models.ForeignKey(Club, on_delete=models.SET_NULL, null=True, blank=True, related_name='events', help_text="Associated club (if any)")
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        ordering = ['-start_date', '-created_at']
+        verbose_name = 'Campus Event'
+        verbose_name_plural = 'Campus Events'
 
 class AcademicService(BaseModel):
     """Academic services and links"""

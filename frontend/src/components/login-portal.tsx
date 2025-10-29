@@ -67,6 +67,13 @@ export default function LoginPortal({ isOpen, onClose }: LoginPortalProps) {
           description: 'You have been signed in successfully.',
         });
         
+        // Redirect based on user role
+        if (currentUserRole === 'student') {
+          window.location.href = '/student/dashboard';
+        } else if (currentUserRole === 'admin') {
+          window.location.href = '/admin';
+        }
+        
         onClose();
         resetForm();
       } else {

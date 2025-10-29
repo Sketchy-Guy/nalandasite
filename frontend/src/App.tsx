@@ -52,6 +52,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import NotFound from "./pages/NotFound";
 import Contact from "./pages/Contact";
 import Departments from "./pages/Departments";
+import StudentDashboard from "./pages/StudentDashboard";
 
 // Department Pages
 import CSEDepartment from "./pages/departments/CSE";
@@ -175,6 +176,9 @@ const App = () => (
               
               {/* Contact Page */}
               <Route path="/contact" element={<Contact />} />
+              
+              {/* Student Dashboard */}
+              <Route path="/student/dashboard" element={<StudentDashboard />} />
               
               {/* Admin Login */}
               <Route path="/admin/login" element={<AdminLogin />} />

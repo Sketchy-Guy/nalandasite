@@ -16,6 +16,18 @@ interface Profile {
   full_name?: string;
   role: string;
   department?: string;
+  semester?: string;
+  phone?: string;
+  enrollment_year?: number;
+  graduation_year?: number;
+  branch?: string;
+  designation?: string;
+  qualifications?: string;
+  research_areas?: string[];
+  current_position?: string;
+  company?: string;
+  address?: string;
+  photo_url?: string;
 }
 
 interface AuthContextType {

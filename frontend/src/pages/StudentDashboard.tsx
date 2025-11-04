@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   User, Bell, Newspaper, BookOpen, Trophy, Calendar, 
@@ -29,6 +30,9 @@ export default function StudentDashboard() {
   const [clubs, setClubs] = useState([]);
   const [magazines, setMagazines] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAllNotices, setShowAllNotices] = useState(false);
+  const [selectedNotice, setSelectedNotice] = useState(null);
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
 
   useEffect(() => {
     // Redirect if not student
@@ -40,7 +44,21 @@ export default function StudentDashboard() {
     const fetchData = async () => {
       try {
         // Fetch notices (get more to show 4 + have extras for "View All")
-        const noticesResponse = await api.notices.list({ limit: 10 });
+        // Ensure we get all active notices with all fields
+        const noticesResponse = await api.notices.list({ 
+          limit: 50, // Increase limit to get more notices
+          is_active: true, // Only active notices
+          ordering: '-created_at' // Latest first
+        });
+        console.log('Notices API Response:', noticesResponse);
+        console.log('Notices Data:', noticesResponse.results);
+        
+        // Debug: Check what fields are available in notices
+        if (noticesResponse.results && noticesResponse.results.length > 0) {
+          console.log('First notice fields:', Object.keys(noticesResponse.results[0]));
+          console.log('First notice sample:', noticesResponse.results[0]);
+        }
+        
         setNotices(noticesResponse.results || []);
 
         // Fetch news
@@ -161,6 +179,109 @@ export default function StudentDashboard() {
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Function to handle notice click - works like NoticeBoard
+  const handleNoticeClick = (notice: any) => {
+    console.log('Notice clicked:', notice.title);
+    console.log('Notice data:', notice);
+    
+    // First check if notice has a direct link property (like NoticeBoard)
+    if (notice.link) {
+      console.log('Direct link found:', notice.link);
+      window.open(notice.link, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    
+    // Fallback: Check if notice content contains a single link that should be opened directly
+    const content = notice.content || notice.description || '';
+    const urlRegex = /(https?:\/\/[^\s<>"]+|www\.[^\s<>"]+)/g;
+    const links = content.match(urlRegex);
+    
+    console.log('Content:', content);
+    console.log('Links found:', links);
+    
+    // If there's exactly one link, check if it should redirect directly
+    if (links && links.length === 1) {
+      const link = links[0];
+      const contentWithoutLink = content.replace(urlRegex, '').trim();
+      
+      console.log('Content without link:', contentWithoutLink);
+      console.log('Content length after removing link:', contentWithoutLink.length);
+      
+      // More flexible detection: if content is mostly just the link or very simple text
+      const isSimpleContent = contentWithoutLink.length < 100 || 
+                             contentWithoutLink.split(' ').length < 10 ||
+                             /^[A-Z\s]{2,20}$/i.test(contentWithoutLink); // Simple text like "BPS ROCKS"
+      
+      if (isSimpleContent) {
+        console.log('Redirecting to:', link);
+        const href = link.startsWith('www.') ? `https://${link}` : link;
+        window.open(href, '_blank', 'noopener,noreferrer');
+        return;
+      }
+    }
+    
+    console.log('Opening modal for notice');
+    // Otherwise, show the modal
+    setSelectedNotice(notice);
+    setShowNoticeModal(true);
+  };
+
+  // Function to check if notice has a direct link - works like NoticeBoard
+  const hasDirectLink = (notice: any) => {
+    // First check if notice has a direct link property (like NoticeBoard)
+    if (notice.link) {
+      return true;
+    }
+    
+    // Fallback: Check content for single links
+    const content = notice.content || notice.description || '';
+    const urlRegex = /(https?:\/\/[^\s<>"]+|www\.[^\s<>"]+)/g;
+    const links = content.match(urlRegex);
+    
+    if (links && links.length === 1) {
+      const contentWithoutLink = content.replace(urlRegex, '').trim();
+      
+      // More flexible detection: if content is mostly just the link or very simple text
+      const isSimpleContent = contentWithoutLink.length < 100 || 
+                             contentWithoutLink.split(' ').length < 10 ||
+                             /^[A-Z\s]{2,20}$/i.test(contentWithoutLink); // Simple text like "BPS ROCKS"
+      
+      return isSimpleContent;
+    }
+    return false;
+  };
+
+  // Function to render content with clickable links
+  const renderContentWithLinks = (content: string) => {
+    if (!content) return '';
+    
+    // Convert URLs to clickable links (supports http, https, www)
+    const urlRegex = /(https?:\/\/[^\s<>"]+|www\.[^\s<>"]+)/g;
+    const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+    const phoneRegex = /(\+?[\d\s\-\(\)]{10,})/g;
+    
+    let processedContent = content
+      // Handle URLs (add https:// to www links)
+      .replace(urlRegex, (match) => {
+        const href = match.startsWith('www.') ? `https://${match}` : match;
+        return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-primary hover:text-primary/80 underline font-medium transition-colors duration-200 break-all">${match} <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a>`;
+      })
+      // Handle email addresses
+      .replace(emailRegex, '<a href="mailto:$1" class="text-primary hover:text-primary/80 underline font-medium transition-colors duration-200">$1</a>')
+      // Handle phone numbers (basic detection)
+      .replace(phoneRegex, (match) => {
+        // Only convert if it looks like a phone number (has enough digits)
+        const digitCount = match.replace(/\D/g, '').length;
+        if (digitCount >= 10) {
+          const cleanPhone = match.replace(/\D/g, '');
+          return `<a href="tel:${cleanPhone}" class="text-primary hover:text-primary/80 underline font-medium transition-colors duration-200">${match}</a>`;
+        }
+        return match;
+      });
+    
+    return processedContent;
   };
 
   // Menu items for hamburger (mobile) and quick actions (desktop)
@@ -493,14 +614,34 @@ export default function StudentDashboard() {
                   {/* Left Column - Notices & News */}
                   <div className="lg:col-span-2 space-y-4 md:space-y-6">
                     {/* Recent Notices */}
-                    <Card className="shadow-card hover:shadow-elegant transition-shadow">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-                          <div className="p-2 bg-primary/10 rounded-lg">
-                            <Bell className="h-5 w-5 text-primary" />
-                          </div>
-                          Important Notices
-                        </CardTitle>
+                    <Card className="shadow-card hover:shadow-elegant transition-shadow bg-gradient-to-br from-card via-card/95 to-primary/5 border-l-4 border-l-primary">
+                      <CardHeader className="pb-4 bg-gradient-to-r from-primary/5 via-primary/3 to-transparent rounded-t-lg">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="flex items-center gap-3 text-lg md:text-xl">
+                            <motion.div 
+                              className="relative p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl border border-primary/30 shadow-lg"
+                              whileHover={{ 
+                                scale: 1.05,
+                                rotate: [0, -2, 2, 0],
+                                transition: { duration: 0.3 }
+                              }}
+                            >
+                              <Bell className="h-6 w-6 text-primary" />
+                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full animate-pulse shadow-lg" />
+                            </motion.div>
+                            <div>
+                              <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent font-bold">
+                                Important Notices
+                              </span>
+                              <p className="text-xs text-muted-foreground mt-1 font-normal">
+                                Stay updated with latest announcements
+                              </p>
+                            </div>
+                          </CardTitle>
+                          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+                            {notices.length > 4 ? '4+' : notices.length} New
+                          </Badge>
+                        </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {loading ? (
@@ -513,38 +654,146 @@ export default function StudentDashboard() {
                             ))}
                           </div>
                         ) : notices.length > 0 ? (
-                          notices.slice(0, 4).map((notice: any, index) => (
+                          (showAllNotices ? notices : notices.slice(0, 4)).map((notice: any, index) => (
                             <motion.div
                               key={notice.id}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.1 }}
-                              className="flex items-start gap-3 p-3 md:p-4 rounded-lg border bg-gradient-to-r from-card to-accent/5 hover:shadow-md transition-all cursor-pointer"
+                              initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                              animate={{ opacity: 1, x: 0, scale: 1 }}
+                              transition={{ 
+                                delay: index * 0.1,
+                                type: "spring",
+                                stiffness: 300,
+                                damping: 25
+                              }}
+                              whileHover={{ 
+                                scale: 1.02,
+                                transition: { duration: 0.2 }
+                              }}
+                              className="group relative overflow-hidden"
                             >
-                              <AlertCircle className={`h-5 w-5 mt-0.5 flex-shrink-0 ${notice.priority === 'high' ? 'text-destructive' : 'text-primary'}`} />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm md:text-base">{notice.title}</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {new Date(notice.created_at).toLocaleDateString()}
-                                </p>
+                              <div 
+                                className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-card via-card/95 to-accent/5 border border-border/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 cursor-pointer"
+                                onClick={() => handleNoticeClick(notice)}
+                              >
+                                {/* Priority indicator line - only visible on hover */}
+                                <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                                  notice.priority === 'high' ? 'bg-gradient-to-b from-destructive to-destructive/70' : 'bg-gradient-to-b from-primary to-primary/70'
+                                }`} />
+                                
+                                {/* Icon container */}
+                                <motion.div 
+                                  className={`relative p-2.5 rounded-lg border ${
+                                    notice.priority === 'high' 
+                                      ? 'bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20' 
+                                      : 'bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20'
+                                  } group-hover:shadow-md transition-all duration-300`}
+                                  whileHover={{ rotate: [0, -3, 3, 0] }}
+                                >
+                                  <AlertCircle className={`h-5 w-5 ${notice.priority === 'high' ? 'text-destructive' : 'text-primary'}`} />
+                                  {notice.priority === 'high' && (
+                                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full animate-pulse" />
+                                  )}
+                                </motion.div>
+                                
+                                {/* Content */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2 mb-2">
+                                    <h4 className="font-semibold text-sm md:text-base text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2">
+                                      {notice.title}
+                                    </h4>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                      {hasDirectLink(notice) && (
+                                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 transition-colors">
+                                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                          </svg>
+                                          Direct Link
+                                        </Badge>
+                                      )}
+                                      {notice.priority === 'high' && (
+                                        <Badge variant="destructive" className="text-xs animate-pulse">
+                                          Urgent
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      {new Date(notice.created_at).toLocaleDateString()}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      {new Date(notice.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Hover underline effect */}
+                                  <div className="h-0.5 bg-gradient-to-r from-primary to-accent scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left mt-2 rounded-full" />
+                                </div>
+                                
+                                {/* Arrow indicator */}
+                                <motion.div
+                                  className="opacity-0 group-hover:opacity-100 transition-all duration-300"
+                                  initial={{ x: -10 }}
+                                  whileHover={{ x: 0 }}
+                                >
+                                  <ChevronRight className="h-5 w-5 text-primary" />
+                                </motion.div>
                               </div>
-                              {notice.priority === 'high' && (
-                                <Badge variant="destructive" className="flex-shrink-0">Urgent</Badge>
-                              )}
                             </motion.div>
                           ))
                         ) : (
                           <p className="text-muted-foreground text-center py-4">No notices available</p>
                         )}
-                        {notices.length > 4 && (
+                        {!showAllNotices && notices.length > 4 && (
                           <div className="text-center text-xs text-muted-foreground py-2">
                             Showing 4 of {notices.length} notices
                           </div>
                         )}
-                        <Button variant="outline" className="w-full mt-2">
-                          View All Notices {notices.length > 4 && `(${notices.length - 4} more)`}
-                          <ChevronRight className="h-4 w-4 ml-2" />
-                        </Button>
+                        {showAllNotices && notices.length > 4 && (
+                          <div className="text-center text-xs text-muted-foreground py-2">
+                            Showing all {notices.length} notices
+                          </div>
+                        )}
+                        <motion.div
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <Button 
+                            variant="outline" 
+                            className="w-full mt-4 h-12 bg-gradient-to-r from-primary/5 to-accent/5 border-primary/30 hover:border-primary/50 hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 transition-all duration-300 group"
+                            onClick={() => setShowAllNotices(!showAllNotices)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Bell className="h-4 w-4 text-primary group-hover:animate-pulse" />
+                              <span className="font-medium">
+                                {showAllNotices 
+                                  ? 'Show Less Notices' 
+                                  : `View All Notices ${notices.length > 4 ? `(${notices.length - 4} more)` : ''}`
+                                }
+                              </span>
+                              <motion.div
+                                className="ml-auto"
+                                animate={{ 
+                                  rotate: showAllNotices ? 180 : 0,
+                                  x: showAllNotices ? 0 : [0, 3, 0]
+                                }}
+                                transition={{ 
+                                  rotate: { duration: 0.3 },
+                                  x: { repeat: showAllNotices ? 0 : Infinity, duration: 1.5 }
+                                }}
+                              >
+                                {showAllNotices ? (
+                                  <ChevronRight className="h-4 w-4 text-primary rotate-90" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-primary" />
+                                )}
+                              </motion.div>
+                            </div>
+                          </Button>
+                        </motion.div>
                       </CardContent>
                     </Card>
 
@@ -1434,6 +1683,89 @@ export default function StudentDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Notice Detail Modal */}
+      <Dialog open={showNoticeModal} onOpenChange={setShowNoticeModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-start gap-3 mb-4">
+              <motion.div 
+                className={`p-3 rounded-xl border ${
+                  selectedNotice?.priority === 'high' 
+                    ? 'bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20' 
+                    : 'bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20'
+                } shadow-lg`}
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Bell className={`h-6 w-6 ${selectedNotice?.priority === 'high' ? 'text-destructive' : 'text-primary'}`} />
+              </motion.div>
+              <div className="flex-1">
+                <DialogTitle className="text-xl md:text-2xl font-bold text-left">
+                  {selectedNotice?.title}
+                </DialogTitle>
+                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                  {selectedNotice?.priority === 'high' && (
+                    <Badge variant="destructive" className="animate-pulse">
+                      Urgent
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-xs">
+                    {selectedNotice?.category}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedNotice?.created_at && new Date(selectedNotice.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {selectedNotice?.content && (
+              <div className="prose prose-sm max-w-none">
+                <DialogDescription 
+                  className="text-base leading-relaxed whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{ 
+                    __html: renderContentWithLinks(selectedNotice.content) 
+                  }}
+                />
+              </div>
+            )}
+            
+            {selectedNotice?.description && selectedNotice.description !== selectedNotice.content && (
+              <div className="p-4 bg-muted/50 rounded-lg border">
+                <h4 className="font-semibold mb-2">Additional Details:</h4>
+                <div 
+                  className="text-sm text-muted-foreground whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{ 
+                    __html: renderContentWithLinks(selectedNotice.description) 
+                  }}
+                />
+              </div>
+            )}
+            
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
+                  Published: {selectedNotice?.created_at && new Date(selectedNotice.created_at).toLocaleDateString()}
+                </span>
+                {selectedNotice?.updated_at && selectedNotice.updated_at !== selectedNotice.created_at && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    Updated: {new Date(selectedNotice.updated_at).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+              <Button variant="outline" onClick={() => setShowNoticeModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

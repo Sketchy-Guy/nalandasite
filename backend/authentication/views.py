@@ -67,9 +67,20 @@ def register_view(request):
 @permission_classes([permissions.IsAuthenticated])
 def profile_view(request):
     try:
-        profile = request.user.profile
-        serializer = ProfileSerializer(profile)
-        return Response(serializer.data)
+        user = request.user
+        profile = user.profile
+        profile_serializer = ProfileSerializer(profile)
+        
+        return Response({
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+            },
+            'profile': profile_serializer.data
+        })
     except Profile.DoesNotExist:
         return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -164,7 +175,29 @@ def user_detail_view(request, user_id):
         return Response(profile_data)
     
     elif request.method == 'PUT':
-        serializer = ProfileSerializer(profile, data=request.data, partial=True)
+        # Handle both user and profile updates
+        data = request.data.copy()
+        
+        # Extract user fields that might be sent
+        user_fields = ['username', 'email', 'first_name', 'last_name', 'password']
+        user_data = {}
+        for field in user_fields:
+            if field in data:
+                user_data[field] = data.pop(field)
+        
+        # Update user fields if provided
+        if user_data:
+            if 'password' in user_data and user_data['password']:
+                user.set_password(user_data['password'])
+                user_data.pop('password')
+            
+            for field, value in user_data.items():
+                if hasattr(user, field) and value is not None and value != '':
+                    setattr(user, field, value)
+            user.save()
+        
+        # Update profile with remaining data
+        serializer = ProfileSerializer(profile, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

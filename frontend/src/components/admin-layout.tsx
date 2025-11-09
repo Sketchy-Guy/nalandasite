@@ -98,12 +98,6 @@ const navigationItems = [
     group: "Media"
   },
   {
-    title: "Academic Pages",
-    icon: BookOpen,
-    url: "/admin/academic-pages",
-    group: "Academic Management"
-  },
-  {
     title: "Timetables",
     icon: Calendar,
     url: "/admin/timetables",

@@ -1,41 +1,56 @@
-# Nalanda Vista Connect - Complete Deployment Guide
+# Nalanda Vista Connect - Ubuntu 22.04 LTS Deployment Guide
+## Complete Production Deployment on Hostinger VPS
 
-## Project Architecture Overview
+### 🚀 Project Stack
+- **Frontend**: React 18.3.1 + TypeScript + Vite + Tailwind CSS
+- **Backend**: Django 5.2.7 + Django REST Framework + JWT Authentication  
+- **Database**: PostgreSQL 14+ (Production)
+- **Web Server**: Nginx + Gunicorn
+- **OS**: Ubuntu 22.04 LTS
+- **SSL**: Let's Encrypt (Free SSL Certificate)
 
-Your project consists of:
-- **Frontend**: React + TypeScript + Vite (port 8080)
-- **Backend**: Django 4.2.7 + DRF with JWT auth (port 8000)
-- **Database**: PostgreSQL (nalandavc database)
+### 📋 Prerequisites
+- Hostinger VPS (2 vCPU, 8GB RAM, 100GB Storage)
+- Domain name (purchased separately or through Hostinger)
+- GitHub repository for your project
+- SSH access to your VPS
 
-## 1. Environment Files Security Best Practices
+## 🎯 **STEP 1: Prepare Your Local Project for Deployment**
 
-### ❌ NEVER commit actual .env files to Git
-### ✅ Instead, create template files and manage production secrets separately
+### 1.1 Create Environment Templates (Security Best Practice)
 
-### Backend Environment Template (.env.example):
+**❌ NEVER commit actual .env files to Git**
+**✅ Create template files for production setup**
+
+#### Backend Environment Template
+Create `backend/.env.example`:
 ```env
 # Django Configuration
 SECRET_KEY=your-secret-key-here
 DEBUG=False
-ALLOWED_HOSTS=your-domain.com,localhost
+ALLOWED_HOSTS=your-domain.com,www.your-domain.com,your-server-ip
 
 # Database Configuration
 DB_NAME=nalandavc
-DB_USER=postgres
-DB_PASSWORD=your-database-password
+DB_USER=nalandauser
+DB_PASSWORD=your-secure-database-password
 DB_HOST=localhost
 DB_PORT=5432
 
 # CORS Configuration
 CORS_ALLOW_ALL_ORIGINS=False
+CORS_ALLOWED_ORIGINS=https://your-domain.com,https://www.your-domain.com
+
+# Security Settings
+CSRF_TRUSTED_ORIGINS=https://your-domain.com,https://www.your-domain.com
+SECURE_PROXY_SSL_HEADER=HTTP_X_FORWARDED_PROTO,https
 ```
 
-### Frontend Environment Template (.env.example):
+#### Frontend Environment Template  
+Create `frontend/.env.example`:
 ```env
-# Django Backend Configuration
+# API Configuration
 VITE_API_BASE_URL=https://your-domain.com/api
-
-# Frontend Configuration  
 VITE_FRONTEND_URL=https://your-domain.com
 ```
 

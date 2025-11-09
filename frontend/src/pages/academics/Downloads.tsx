@@ -14,6 +14,7 @@ interface AcademicDownload {
   title: string;
   description: string;
   file_url: string;
+  drive_url?: string;
   file_size: number;
   file_type: string;
   category: string;
@@ -36,11 +37,9 @@ const DownloadsPage = () => {
   const fetchDownloads = async () => {
     try {
       const response = await api.academicServices.list();
-      // Filter for download-related services
+      // Get all active academic services (documents)
       const downloadData = (response.results || []).filter((item: any) => 
-        item.category?.toLowerCase().includes('download') || 
-        item.title?.toLowerCase().includes('download') ||
-        item.title?.toLowerCase().includes('form')
+        item.is_active !== false
       );
       setDownloads(downloadData);
     } catch (error) {
@@ -60,20 +59,34 @@ const DownloadsPage = () => {
   });
 
   const handleDownload = async (downloadItem: AcademicDownload) => {
-    if (downloadItem.file_url) {
-      // Trigger download
-      const link = document.createElement('a');
-      link.href = downloadItem.file_url;
-      link.download = downloadItem.title;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      // Update local state
-      setDownloads(prev => prev.map(item => 
-        item.id === downloadItem.id 
-          ? { ...item, download_count: item.download_count + 1 }
-          : item
-      ));
+    const url = downloadItem.file_url || downloadItem.drive_url;
+    if (url) {
+      // For Google Drive links, open in new tab; for files, trigger download
+      if (downloadItem.drive_url) {
+        window.open(downloadItem.drive_url, '_blank');
+      } else if (downloadItem.file_url) {
+        const link = document.createElement('a');
+        link.href = downloadItem.file_url;
+        link.download = downloadItem.title;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      
+      // Update download count
+      try {
+        await api.academicServices.update(downloadItem.id, { 
+          download_count: (downloadItem.download_count || 0) + 1 
+        });
+        // Update local state
+        setDownloads(prev => prev.map(item => 
+          item.id === downloadItem.id 
+            ? { ...item, download_count: (item.download_count || 0) + 1 }
+            : item
+        ));
+      } catch (error) {
+        console.error('Error updating download count:', error);
+      }
     }
   };
 
@@ -168,10 +181,13 @@ const DownloadsPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="Forms">Application Forms</SelectItem>
+                <SelectItem value="Application Forms">Application Forms</SelectItem>
                 <SelectItem value="Syllabi">Syllabi</SelectItem>
                 <SelectItem value="Handbooks">Handbooks</SelectItem>
                 <SelectItem value="Regulations">Regulations</SelectItem>
+                <SelectItem value="Academic Calendar">Academic Calendar</SelectItem>
+                <SelectItem value="Examination">Examination</SelectItem>
+                <SelectItem value="Admission">Admission</SelectItem>
                 <SelectItem value="General">General</SelectItem>
               </SelectContent>
             </Select>
@@ -244,10 +260,10 @@ const DownloadsPage = () => {
                       <Button 
                         onClick={() => handleDownload(download)}
                         className="w-full"
-                        disabled={!download.file_url}
+                        disabled={!download.file_url && !download.drive_url}
                       >
                         <Download className="h-4 w-4 mr-2" />
-                        Download
+                        {download.drive_url ? 'Open Link' : 'Download'}
                       </Button>
                     </div>
                   </CardContent>

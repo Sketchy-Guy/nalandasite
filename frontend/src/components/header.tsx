@@ -118,12 +118,15 @@ const Header = () => {
   <div className="topbar text-white py-2 px-2 sm:px-4">
         <div className="container mx-auto flex justify-between items-center">
           {/* Left side: New Logo */}
-          <div className="flex items-center">
-            <img 
-              src={allLogo} 
-              alt="Nalanda Institute of Technology" 
-              className="h-6 sm:h-8 md:h-10 lg:h-12 w-auto"
-            />
+          <div className="hidden sm:flex items-center">
+            <div className="relative p-2 rounded-lg bg-gradient-to-r from-white via-white to-blue-100 shadow-sm">
+              <img 
+                src={allLogo} 
+                alt="Nalanda Institute of Technology" 
+                className="h-6 sm:h-8 md:h-10 lg:h-12 w-auto relative z-10"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-white via-blue-50 to-blue-200 opacity-60 rounded-lg animate-pulse"></div>
+            </div>
           </div>
 
           {/* Right side: Fees Payment + User Menu */}
@@ -131,12 +134,15 @@ const Header = () => {
             {/* Fees Payment - moved next to login */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 text-xs sm:text-sm">
-                  <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Fees Payment</span>
-                  <span className="sm:hidden">Fees</span>
-                  <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
-                </Button>
+                <div className="relative p-1 rounded-lg bg-gradient-to-r from-white via-white to-blue-100 shadow-sm">
+                  <Button variant="ghost" size="sm" className="text-gray-700 hover:bg-blue-50 text-xs sm:text-sm relative z-10">
+                    <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Fees Payment</span>
+                    <span className="sm:hidden">Fees</span>
+                    <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
+                  </Button>
+                  <div className="absolute inset-0 bg-gradient-to-r from-white via-blue-50 to-blue-200 opacity-40 rounded-lg animate-pulse"></div>
+                </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="bg-popover border border-border shadow-lg rounded-xl z-50">
                 {feesSubMenu.map((item) => (
@@ -154,11 +160,14 @@ const Header = () => {
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                      <User className="h-4 w-4 mr-2" />
-                      <span className="hidden sm:inline">{`Welcome, ${user.email?.split('@')[0]}`}</span>
-                      <ChevronDown className="h-4 w-4 ml-2" />
-                    </Button>
+                    <div className="relative p-1 rounded-lg bg-gradient-to-r from-white via-white to-blue-100 shadow-sm">
+                      <Button variant="ghost" size="sm" className="text-gray-700 hover:bg-blue-50 relative z-10">
+                        <User className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">{`Welcome, ${user.email?.split('@')[0]}`}</span>
+                        <ChevronDown className="h-4 w-4 ml-2" />
+                      </Button>
+                      <div className="absolute inset-0 bg-gradient-to-r from-white via-blue-50 to-blue-200 opacity-40 rounded-lg animate-pulse"></div>
+                    </div>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg rounded-xl z-50">
                     <DropdownMenuItem onClick={() => handleUserAction('profile')}>
@@ -177,18 +186,24 @@ const Header = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setIsLoginOpen(true)}
-                  className="text-white hover:bg-white/20 flex items-center"
-                >
-                  <User className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Login Portal</span>
-                </Button>
+                <div className="relative p-1 rounded-lg bg-gradient-to-r from-white via-white to-blue-100 shadow-sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setIsLoginOpen(true)}
+                    className="text-gray-700 hover:bg-blue-50 flex items-center relative z-10"
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Login Portal</span>
+                  </Button>
+                  <div className="absolute inset-0 bg-gradient-to-r from-white via-blue-50 to-blue-200 opacity-40 rounded-lg animate-pulse"></div>
+                </div>
               )}
             </div>
-            {/* Theme Toggle - placed after login */}
+          </div>
+
+          {/* Far Right: Theme Toggle - Always on right edge */}
+          <div className="flex items-center">
             <Button
               variant="ghost"
               size="icon"

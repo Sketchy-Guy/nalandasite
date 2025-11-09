@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Sparkles, Plus, Edit, Trash2, Eye, Star, Image as ImageIcon, FileText, Upload } from "lucide-react";
+import { Sparkles, Plus, Edit, Trash2, Eye, Star, Image as ImageIcon, FileText, Upload, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -53,6 +53,106 @@ const departments = [
   "Other"
 ];
 
+// SubmissionCard component for approved submissions
+const SubmissionCard = ({ 
+  submission, 
+  onToggleFeatured, 
+  onDelete 
+}: { 
+  submission: any; 
+  onToggleFeatured: (submission: any) => void; 
+  onDelete: (id: string) => void; 
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    whileHover={{ scale: 1.02 }}
+    className="group"
+  >
+    <Card className="hover:shadow-2xl transition-all duration-300 border-2 hover:border-primary/30 overflow-hidden">
+      {submission.image_url && (
+        <div className="relative h-48 overflow-hidden">
+          <img 
+            src={submission.image_url} 
+            alt={submission.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          {submission.is_featured && (
+            <Badge className="absolute top-3 right-3 bg-gradient-to-r from-yellow-500 to-orange-500">
+              <Star className="w-3 h-3 mr-1 fill-current" />
+              Featured
+            </Badge>
+          )}
+        </div>
+      )}
+
+      <CardHeader>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="truncate text-lg">{submission.title}</CardTitle>
+            <CardDescription className="truncate">
+              {submission.user_name || 'Unknown'} • {submission.department} • {submission.category}
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-3">
+        {submission.description && (
+          <p className="text-sm text-muted-foreground line-clamp-2">{submission.description}</p>
+        )}
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Approved
+          </Badge>
+          <span>•</span>
+          <span>Submitted: {new Date(submission.submitted_at).toLocaleDateString()}</span>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={() => onToggleFeatured(submission)}
+            className={submission.is_featured ? 'border-yellow-500 text-yellow-600' : ''}
+          >
+            <Star className={`w-4 h-4 mr-1 ${submission.is_featured ? 'fill-yellow-500' : ''}`} />
+            {submission.is_featured ? 'Unfeature' : 'Feature'}
+          </Button>
+
+          {(submission.instagram_url || submission.youtube_url) && (
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => {
+                if (submission.instagram_url) {
+                  window.open(submission.instagram_url, '_blank');
+                } else if (submission.youtube_url) {
+                  window.open(submission.youtube_url, '_blank');
+                }
+              }}
+            >
+              <Eye className="w-4 h-4 mr-1" />
+              View
+            </Button>
+          )}
+
+          <Button 
+            size="sm" 
+            variant="destructive"
+            onClick={() => onDelete(submission.id)}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  </motion.div>
+);
+
 export function CreativeGalleryManager() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -74,12 +174,21 @@ export function CreativeGalleryManager() {
     youtube_url: ""
   });
 
-  // Fetch creative works
+  // Fetch creative works (manually curated)
   const { data: works = [], isLoading: loading } = useQuery({
     queryKey: ['creative-works'],
     queryFn: async () => {
       const response = await api.creativeWorks.list();
       return response.results || response;
+    },
+  });
+
+  // Fetch approved submissions
+  const { data: approvedSubmissions = [], isLoading: loadingSubmissions } = useQuery({
+    queryKey: ['student-submissions', 'approved'],
+    queryFn: async () => {
+      const response = await api.studentSubmissions.approved();
+      return response;
     },
   });
 
@@ -159,6 +268,35 @@ export function CreativeGalleryManager() {
     onError: (error: any) => {
       console.error('Error toggling active:', error);
       toast.error('Failed to update active status');
+    }
+  });
+
+  // Submission management mutations
+  const toggleSubmissionFeaturedMutation = useMutation({
+    mutationFn: async ({ id, is_featured }: { id: string; is_featured: boolean }) => {
+      return await api.studentSubmissions.patch(id, { is_featured });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['student-submissions', 'approved'] });
+      toast.success(data.is_featured ? 'Submission featured' : 'Submission unfeatured');
+    },
+    onError: (error: any) => {
+      console.error('Error toggling submission featured:', error);
+      toast.error('Failed to update featured status');
+    }
+  });
+
+  const deleteSubmissionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await api.studentSubmissions.delete(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['student-submissions', 'approved'] });
+      toast.success('Approved submission deleted successfully');
+    },
+    onError: (error: any) => {
+      console.error('Error deleting submission:', error);
+      toast.error('Failed to delete submission');
     }
   });
 
@@ -288,6 +426,10 @@ export function CreativeGalleryManager() {
   const activeWorks = works.filter((w: CreativeWork) => w.is_active && !w.is_featured);
   const inactiveWorks = works.filter((w: CreativeWork) => !w.is_active);
 
+  // Approved submissions statistics
+  const featuredSubmissions = approvedSubmissions.filter((s: any) => s.is_featured);
+  const regularSubmissions = approvedSubmissions.filter((s: any) => !s.is_featured);
+
   return (
     <div className="space-y-8">
       {/* Header Section */}
@@ -312,7 +454,7 @@ export function CreativeGalleryManager() {
               </h2>
               
               <p className="text-lg text-muted-foreground max-w-3xl">
-                Curate and manage the featured creative works displayed on your homepage gallery
+                Curate and manage both manual creative works and approved student submissions displayed on your homepage gallery
               </p>
             </div>
             
@@ -327,12 +469,12 @@ export function CreativeGalleryManager() {
           </div>
 
           {/* Info Cards */}
-          <div className="grid grid-cols-3 gap-4 mt-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <Card className="border-2 border-yellow-500/20 bg-yellow-500/5">
               <CardContent className="p-4 text-center">
                 <Star className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-yellow-600">{featuredWorks.length}</div>
-                <div className="text-sm text-muted-foreground">Featured Works</div>
+                <div className="text-2xl font-bold text-yellow-600">{featuredWorks.length + featuredSubmissions.length}</div>
+                <div className="text-sm text-muted-foreground">Featured Content</div>
               </CardContent>
             </Card>
             
@@ -340,7 +482,15 @@ export function CreativeGalleryManager() {
               <CardContent className="p-4 text-center">
                 <Eye className="w-8 h-8 text-green-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-green-600">{activeWorks.length}</div>
-                <div className="text-sm text-muted-foreground">Active Works</div>
+                <div className="text-sm text-muted-foreground">Manual Works</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-2 border-blue-500/20 bg-blue-500/5">
+              <CardContent className="p-4 text-center">
+                <CheckCircle className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-blue-600">{approvedSubmissions.length}</div>
+                <div className="text-sm text-muted-foreground">Approved Submissions</div>
               </CardContent>
             </Card>
             
@@ -455,6 +605,54 @@ export function CreativeGalleryManager() {
                 onDelete={handleDelete}
                 onToggleFeatured={toggleFeatured}
                 onToggleActive={toggleActive}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Featured Approved Submissions */}
+      {featuredSubmissions.length > 0 && (
+        <div>
+          <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+            Featured Approved Submissions
+          </h3>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {featuredSubmissions.map((submission: any) => (
+              <SubmissionCard
+                key={submission.id}
+                submission={submission}
+                onToggleFeatured={(sub) => toggleSubmissionFeaturedMutation.mutate({ id: sub.id, is_featured: !sub.is_featured })}
+                onDelete={(id) => {
+                  if (confirm('Are you sure you want to delete this approved submission?')) {
+                    deleteSubmissionMutation.mutate(id);
+                  }
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Regular Approved Submissions */}
+      {regularSubmissions.length > 0 && (
+        <div>
+          <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <CheckCircle className="w-6 h-6 text-blue-500" />
+            Approved Submissions
+          </h3>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {regularSubmissions.map((submission: any) => (
+              <SubmissionCard
+                key={submission.id}
+                submission={submission}
+                onToggleFeatured={(sub) => toggleSubmissionFeaturedMutation.mutate({ id: sub.id, is_featured: !sub.is_featured })}
+                onDelete={(id) => {
+                  if (confirm('Are you sure you want to delete this approved submission?')) {
+                    deleteSubmissionMutation.mutate(id);
+                  }
+                }}
               />
             ))}
           </div>

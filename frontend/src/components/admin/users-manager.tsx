@@ -21,6 +21,7 @@ interface Profile {
   username: string;
   department: string;
   role: string;
+  role_type: string;
   designation: string;
   qualifications: string;
   research_areas: string[];
@@ -65,6 +66,7 @@ export function UsersManager() {
     password: '',
     full_name: '',
     role: 'student',
+    role_type: 'student',
     department: '',
     designation: '',
     qualifications: '',
@@ -188,6 +190,7 @@ export function UsersManager() {
       password: '',
       full_name: profile.full_name || '',
       role: profile.role || 'student',
+      role_type: profile.role_type || 'student',
       department: profile.department || '',
       designation: profile.designation || '',
       qualifications: profile.qualifications || '',
@@ -215,6 +218,7 @@ export function UsersManager() {
       password: '',
       full_name: '',
       role: 'student',
+      role_type: 'student',
       department: '',
       designation: '',
       qualifications: '',
@@ -260,21 +264,103 @@ export function UsersManager() {
           throw new Error('Failed to update user');
         }
       } else {
-        // Create new user
+        // Create new user - send only relevant fields based on role
+        const createData: any = {
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          full_name: formData.full_name,
+          role: formData.role,
+          role_type: formData.role_type,
+          department: formData.department,
+          phone: formData.phone,
+          address: formData.address,
+        };
+
+        // Add photo_url only if provided
+        if (formData.photo_url) {
+          createData.photo_url = formData.photo_url;
+        }
+
+        // Add role-specific fields
+        if (formData.role === 'student' || formData.role === 'alumni') {
+          if (formData.enrollment_year) createData.enrollment_year = parseInt(formData.enrollment_year);
+          if (formData.graduation_year) createData.graduation_year = parseInt(formData.graduation_year);
+          if (formData.semester) createData.semester = formData.semester;
+          if (formData.branch) createData.branch = formData.branch;
+        }
+
+        if (formData.role === 'faculty') {
+          if (formData.designation) createData.designation = formData.designation;
+          if (formData.qualifications) createData.qualifications = formData.qualifications;
+          if (formData.research_areas && formData.research_areas.length > 0) {
+            createData.research_areas = formData.research_areas;
+          }
+        }
+
+        if (formData.role === 'alumni') {
+          if (formData.current_position) createData.current_position = formData.current_position;
+          if (formData.company) createData.company = formData.company;
+        }
+
+        // console.log('Creating user with filtered data:', createData);
         const response = await fetch('http://localhost:8000/api/auth/users/', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(submitData)
+          body: JSON.stringify(createData)
         });
 
-        if (response.ok) {
+        if (response.ok || response.status === 201) {
           toast({ title: 'Success', description: 'User created successfully' });
           handleFormSuccess();
         } else {
-          throw new Error('Failed to create user');
+          const responseText = await response.text();
+          console.log('Error response text:', responseText);
+          let errorMessage = 'Failed to create user';
+          try {
+            const errorData = JSON.parse(responseText);
+            console.log('Parsed error data:', errorData);
+            
+            // Handle different error formats
+            if (errorData.detail) {
+              errorMessage = errorData.detail;
+            } else if (errorData.message) {
+              errorMessage = errorData.message;
+            } else if (typeof errorData === 'object') {
+              // Handle field-specific errors
+              const fieldErrors = [];
+              for (const [field, errors] of Object.entries(errorData)) {
+                if (Array.isArray(errors)) {
+                  fieldErrors.push(`${field}: ${errors.join(', ')}`);
+                } else {
+                  fieldErrors.push(`${field}: ${errors}`);
+                }
+              }
+              if (fieldErrors.length > 0) {
+                errorMessage = fieldErrors.join('; ');
+              }
+            }
+          } catch (e) {
+            console.log('Could not parse error response as JSON');
+            // Extract error from HTML if it's a Django error page
+            if (responseText.includes('IntegrityError')) {
+              if (responseText.includes('duplicate key value')) {
+                errorMessage = 'User with this username or email already exists';
+              } else {
+                errorMessage = 'Database integrity error occurred';
+              }
+            } else {
+              errorMessage = responseText || 'Failed to create user';
+            }
+          }
+          
+          console.log('Final error message:', errorMessage);
+          throw new Error(errorMessage);
         }
       }
     } catch (error: any) {
@@ -296,6 +382,7 @@ export function UsersManager() {
     if (!confirm('Are you sure you want to delete this profile?')) return;
 
     try {
+      console.log('Deleting user with ID:', userId);
       const response = await fetch(`http://localhost:8000/api/auth/users/${userId}/`, {
         method: 'DELETE',
         headers: {
@@ -304,13 +391,18 @@ export function UsersManager() {
         },
       });
 
-      if (response.ok) {
-        toast({ title: 'Success', description: 'Profile deleted successfully' });
+      console.log('Delete response status:', response.status);
+      const responseText = await response.text();
+      console.log('Delete response text:', responseText);
+
+      if (response.ok || response.status === 204) {
+        toast({ title: 'Success', description: 'User deleted successfully' });
         fetchProfiles();
       } else {
-        throw new Error('Failed to delete user');
+        throw new Error(`Failed to delete user: ${responseText}`);
       }
     } catch (error: any) {
+      console.error('Delete error:', error);
       toast({
         title: 'Error',
         description: error.message,

@@ -8,5 +8,5 @@ max_requests_jitter = 100
 timeout = 30
 keepalive = 2
 preload_app = True
-user = "www-data"
-group = "www-data"
+user = "deploy"
+group = "deploy"

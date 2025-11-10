@@ -92,6 +92,12 @@ class MagazineSerializer(serializers.ModelSerializer):
         """Return the download URL - external URL if available, otherwise local file URL"""
         return obj.get_file_url
     
+    def create(self, validated_data):
+        """Handle magazine creation, removing delete_cover_image field"""
+        # Remove delete_cover_image field as it's not needed for creation
+        validated_data.pop('delete_cover_image', False)
+        return super().create(validated_data)
+    
     def update(self, instance, validated_data):
         """Handle cover image deletion during update"""
         delete_cover_image = validated_data.pop('delete_cover_image', False)

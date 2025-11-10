@@ -150,15 +150,6 @@ const HeroSection = () => {
                 {heroImages[currentSlide].description}
               </p>
             )}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
-                className="bg-white text-primary hover:bg-white/90 shadow-elegant"
-              >
-                Explore Programs
-              </Button>
-              
-            </div>
           </motion.div>
         </div>
       </div>

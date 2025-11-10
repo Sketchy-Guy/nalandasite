@@ -65,7 +65,8 @@ export function CampusStatsManager() {
         headers['Authorization'] = `Bearer ${token}`;
       }
       
-      const response = await fetch('http://localhost:8000/api/campus-stats/', {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${API_BASE_URL}/campus-stats/`, {
         headers,
       });
 
@@ -103,9 +104,10 @@ export function CampusStatsManager() {
 
     try {
       const token = localStorage.getItem('access_token');
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
       const url = editingStat.id 
-        ? `http://localhost:8000/api/campus-stats/${editingStat.id}/`
-        : 'http://localhost:8000/api/campus-stats/';
+        ? `${API_BASE_URL}/campus-stats/${editingStat.id}/`
+        : `${API_BASE_URL}/campus-stats/`;
       
       const method = editingStat.id ? 'PUT' : 'POST';
       
@@ -145,7 +147,8 @@ export function CampusStatsManager() {
 
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8000/api/campus-stats/${id}/`, {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${API_BASE_URL}/campus-stats/${id}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

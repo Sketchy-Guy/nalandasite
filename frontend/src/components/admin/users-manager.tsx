@@ -95,7 +95,8 @@ export function UsersManager() {
   const fetchSuperAdmins = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:8000/api/auth/superadmins/', {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${API_BASE_URL}/auth/superadmins/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -119,7 +120,8 @@ export function UsersManager() {
       const token = localStorage.getItem('access_token');
       console.log('Fetching profiles with token:', token ? 'Token exists' : 'No token');
       
-      const response = await fetch('http://localhost:8000/api/auth/users/', {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${API_BASE_URL}/auth/users/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -248,7 +250,8 @@ export function UsersManager() {
 
       if (editingProfile) {
         // Update existing user
-        const response = await fetch(`http://localhost:8000/api/auth/users/${editingProfile.user_id}/`, {
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+        const response = await fetch(`${API_BASE_URL}/auth/users/${editingProfile.user_id}/`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -306,7 +309,8 @@ export function UsersManager() {
         }
 
         // console.log('Creating user with filtered data:', createData);
-        const response = await fetch('http://localhost:8000/api/auth/users/', {
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+        const response = await fetch(`${API_BASE_URL}/auth/users/`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -383,7 +387,8 @@ export function UsersManager() {
 
     try {
       console.log('Deleting user with ID:', userId);
-      const response = await fetch(`http://localhost:8000/api/auth/users/${userId}/`, {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${API_BASE_URL}/auth/users/${userId}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`,

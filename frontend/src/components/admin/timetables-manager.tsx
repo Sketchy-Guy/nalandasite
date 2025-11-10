@@ -78,7 +78,8 @@ const TimetablesManager = () => {
   const testConnectivity = async () => {
     try {
       console.log('Testing connectivity to Django server...');
-      const response = await fetch('http://localhost:8000/api/departments/');
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${API_BASE_URL}/departments/`);
       console.log('Connectivity test response:', response.status, response.statusText);
       if (response.ok) {
         console.log('✅ Django server is reachable');
@@ -254,7 +255,6 @@ const TimetablesManager = () => {
         }
         console.log('Department ID:', formData.department);
         console.log('File:', fileInput.files[0]);
-        console.log('API Base URL:', 'http://localhost:8000/api');
         console.log('Auth token:', localStorage.getItem('access_token') ? 'Present' : 'Missing');
 
         if (editingTimetable) {
@@ -267,7 +267,6 @@ const TimetablesManager = () => {
       } else {
         // Use JSON for non-file submissions
         console.log('Submitting timetable data without file:', formData);
-        console.log('API Base URL:', 'http://localhost:8000/api');
         console.log('Auth token:', localStorage.getItem('access_token') ? 'Present' : 'Missing');
         
         if (editingTimetable) {

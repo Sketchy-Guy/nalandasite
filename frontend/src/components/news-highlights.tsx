@@ -41,7 +41,8 @@ const NewsHighlights = () => {
       console.log('Fetching news from API...');
       
       // Try direct fetch first to test if API is accessible
-      const directResponse = await fetch('http://localhost:8000/api/news/');
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const directResponse = await fetch(`${API_BASE_URL}/news/`);
       console.log('Direct fetch response:', directResponse.status);
       
       if (directResponse.ok) {

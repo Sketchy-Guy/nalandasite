@@ -67,7 +67,12 @@ export const MagazinesManager = () => {
       const submitData = new FormData();
       submitData.append('title', formData.title);
       submitData.append('description', formData.description);
-      submitData.append('file_url', formData.file_url);
+      
+      // Only append file_url if it has a value
+      if (formData.file_url && formData.file_url.trim()) {
+        submitData.append('file_url', formData.file_url);
+      }
+      
       // Only append issue_date if it has a value
       if (formData.issue_date) {
         submitData.append('issue_date', formData.issue_date);

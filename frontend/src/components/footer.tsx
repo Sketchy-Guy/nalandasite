@@ -45,11 +45,11 @@ const Footer = () => {
   ];
 
   const socialLinks = [
-    { name: "Facebook", icon: Facebook, href: "https://facebook.com/nalandatech" },
-    { name: "Twitter", icon: Twitter, href: "https://twitter.com/nalandatech" },
-    { name: "Instagram", icon: Instagram, href: "https://instagram.com/nalandatech" },
-    { name: "LinkedIn", icon: Linkedin, href: "https://linkedin.com/school/nalandatech" },
-    { name: "YouTube", icon: Youtube, href: "https://youtube.com/nalandatech" }
+    { name: "Facebook", icon: Facebook, href: "https://www.facebook.com/share/1AG6TvcnQi/" },
+    { name: "Twitter", icon: Twitter, href: "https://x.com/NALANDABHUBANE1?t=yZjipw--Sqys2lqrCzzNew&s=09" },
+    { name: "Instagram", icon: Instagram, href: "https://www.instagram.com/nalandabbsr?igsh=MXJ0Nm1rNGp4Y3U5dw==" },
+    { name: "LinkedIn", icon: Linkedin, href: "https://www.linkedin.com/company/nalanda-institute-of-technology-bhubaneswar/" },
+    { name: "YouTube", icon: Youtube, href: "https://youtube.com/@nalandabhubaneswar4971?si=4Y4sfKUoXeyYvIl6" }
   ];
 
   return (

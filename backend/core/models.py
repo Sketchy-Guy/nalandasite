@@ -459,22 +459,10 @@ class StudentSubmission(BaseModel):
         ('Other', 'Other')
     ]
     
-    DEPARTMENT_CHOICES = [
-        ('Computer Science & Engineering', 'Computer Science & Engineering'),
-        ('Information Technology', 'Information Technology'),
-        ('Mechanical Engineering', 'Mechanical Engineering'),
-        ('Electrical Engineering', 'Electrical Engineering'),
-        ('Civil Engineering', 'Civil Engineering'),
-        ('MBA', 'MBA'),
-        ('MCA', 'MCA'),
-        ('BCA', 'BCA'),
-        ('Other', 'Other')
-    ]
-    
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
-    department = models.CharField(max_length=100, choices=DEPARTMENT_CHOICES, blank=True, null=True)
+    department = models.CharField(max_length=100, blank=True, null=True, help_text="Department name")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     is_featured = models.BooleanField(default=False)
     

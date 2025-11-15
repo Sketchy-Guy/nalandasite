@@ -82,18 +82,28 @@ const Footer = () => {
                   href="https://www.google.com/maps/dir//Nalanda+Institute+of+Technology+Buddhist+Villa,+Khandagiri+-+Chandaka+Rd,+Bhubaneswar,+Odisha+754012/@20.3659638,85.6785819,12z/data=!4m8!4m7!1m0!1m5!1m1!1s0x3a19060462635441:0x2697f0bcc78c2240!2m2!1d85.7609836!2d20.3659831?entry=ttu&g_ep=EgoyMDI1MTExMi4wIKXMDSoASAFQAw%3D%3D"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="text-muted-foreground hover:text-primary transition-smooth"
                 >
                   Nalanda Institute of Technology Buddhist Villa, Chandaka, Bhubaneswar, Odisha 751024
                 </a>
               </div>
               <div className="flex items-center space-x-3 text-sm">
                 <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                <span className="text-muted-foreground">+91 99371 65074</span>
+                <a 
+                  href="tel:+919937165074"
+                  className="text-muted-foreground hover:text-primary transition-smooth"
+                >
+                  +91 99371 65074
+                </a>
               </div>
               <div className="flex items-center space-x-3 text-sm">
                 <Mail className="w-4 h-4 text-primary flex-shrink-0" />
-                <span className="text-muted-foreground">info@thenalanda.com</span>
+                <a 
+                  href="mailto:info@thenalanda.com"
+                  className="text-muted-foreground hover:text-primary transition-smooth"
+                >
+                  info@thenalanda.com
+                </a>
               </div>
             </div>
 

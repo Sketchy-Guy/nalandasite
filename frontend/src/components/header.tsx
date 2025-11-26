@@ -83,21 +83,35 @@ const Header = () => {
   { title: "Computer Science & Engineering", href: "/departments/cse" },
 ]);
 
-// Add this effect after the state declaration
 useEffect(() => {
   const fetchDepartments = async () => {
     try {
       const response = await api.departments.list();
       const departments = response.results || response || [];
       
-      const formattedDepartments = departments.map((dept: any) => ({
-        title: dept.name,
-        // Use the department's ID in the URL to match the department page route
-        href: `/department/${dept.code || dept.id}`
-      }));
+      const formattedDepartments = departments.map((dept: any) => {
+        // Use dept.id if code is not available, and ensure it's a string
+        const departmentId = dept.code || dept.id;
+        // Make sure we have a valid ID and it's a string
+        if (!departmentId) {
+          console.warn('Department missing ID:', dept);
+          return null;
+        }
+        return {
+          title: dept.name || 'Unnamed Department',
+          // Ensure the URL is always in the plural form
+          href: `/departments/${String(departmentId).toLowerCase()}`
+        };
+      }).filter(Boolean); // Remove any null entries
 
       if (formattedDepartments.length > 0) {
         setDepartmentsSubMenu(formattedDepartments);
+      } else {
+        // Fallback to default if no departments found
+        setDepartmentsSubMenu([
+          { title: "Computer Science & Engineering", href: "/departments/cse" },
+          { title: "Information Technology", href: "/departments/it" }
+        ]);
       }
     } catch (error) {
       console.error('Error fetching departments:', error);

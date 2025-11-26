@@ -386,7 +386,7 @@ const Header = () => {
 
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className="text-sm">Departments</NavigationMenuTrigger>
-                  <NavigationMenuContent className="z-50 max-h-[70vh] overflow-y-auto">
+                  <NavigationMenuContent className="z-50 max-h-[70vh] overflow-y-auto scrollbar-hide">
                     <div className="w-80 p-4 bg-popover border border-border shadow-lg rounded-xl">
                       <div className="grid gap-2">
                         {departmentsSubMenu.map((item) => (

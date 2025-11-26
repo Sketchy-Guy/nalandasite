@@ -4,13 +4,13 @@ import { motion } from "framer-motion";
 import { Menu, X, Search, User, CreditCard, ChevronDown, LogOut, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  NavigationMenu, 
-  NavigationMenuContent, 
-  NavigationMenuItem, 
-  NavigationMenuLink, 
-  NavigationMenuList, 
-  NavigationMenuTrigger 
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger
 } from "@/components/ui/navigation-menu";
 import {
   DropdownMenu,
@@ -66,7 +66,8 @@ const Header = () => {
     { title: "About Us", href: "/about" },
     { title: "Vision & Mission", href: "/about/vision-mission" },
     { title: "Awards & Achievements", href: "/about/awards" },
-    { title: "Accreditation", href: "/about/accreditation", 
+    {
+      title: "Accreditation", href: "/about/accreditation",
       subItems: [
         { title: "NAAC A+", href: "/about/accreditation/naac" },
         { title: "NBA", href: "/about/accreditation/nba" },
@@ -79,64 +80,64 @@ const Header = () => {
   ];
 
   const [departmentsSubMenu, setDepartmentsSubMenu] = useState([
-  // These will be shown while loading or if the fetch fails
-  { title: "Computer Science & Engineering", href: "/departments/cse" },
-]);
+    // These will be shown while loading or if the fetch fails
+    { title: "Computer Science & Engineering", href: "/departments/cse" },
+  ]);
 
-useEffect(() => {
-  const fetchDepartments = async () => {
-    try {
-      const response = await api.departments.list();
-      // Ensure we have a valid array, fallback to empty array
-      const departments = Array.isArray(response?.results) 
-        ? response.results 
-        : Array.isArray(response) 
-          ? response 
-          : [];
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await api.departments.list();
+        // Ensure we have a valid array, fallback to empty array
+        const departments = Array.isArray(response?.results)
+          ? response.results
+          : Array.isArray(response)
+            ? response
+            : [];
 
-      const formattedDepartments = departments
-        .filter((dept: any) => {
-          // Filter out any invalid department objects
-          const hasValidId = Boolean(dept?.id || dept?.code);
-          if (!hasValidId) {
-            console.warn('Skipping department - missing id and code:', dept);
-          }
-          return hasValidId;
-        })
-        .map((dept: any) => {
-          // Safely get department ID, default to empty string
-          const departmentId = String(dept?.code || dept?.id || '');
-          
-          return {
-            title: String(dept?.name || 'Unnamed Department'),
-            href: `/departments/${departmentId.toLowerCase()}`,
-            // Preserve original data for debugging
-            _original: dept
-          };
-        });
+        const formattedDepartments = departments
+          .filter((dept: any) => {
+            // Filter out any invalid department objects
+            const hasValidId = Boolean(dept?.id || dept?.code);
+            if (!hasValidId) {
+              console.warn('Skipping department - missing id and code:', dept);
+            }
+            return hasValidId;
+          })
+          .map((dept: any) => {
+            // Safely get department ID, default to empty string
+            const departmentId = String(dept?.code || dept?.id || '');
 
-      if (formattedDepartments.length > 0) {
-        setDepartmentsSubMenu(formattedDepartments);
-      } else {
-        // Fallback to default if no valid departments found
-        console.warn('No valid departments found, using fallback');
+            return {
+              title: String(dept?.name || 'Unnamed Department'),
+              href: `/departments/${departmentId.toLowerCase()}`,
+              // Preserve original data for debugging
+              _original: dept
+            };
+          });
+
+        if (formattedDepartments.length > 0) {
+          setDepartmentsSubMenu(formattedDepartments);
+        } else {
+          // Fallback to default if no valid departments found
+          console.warn('No valid departments found, using fallback');
+          setDepartmentsSubMenu([
+            { title: "Computer Science & Engineering", href: "/departments/cse" },
+            { title: "Information Technology", href: "/departments/it" }
+          ]);
+        }
+      } catch (error) {
+        console.error('Error fetching departments:', error);
+        // Fallback to default departments on error
         setDepartmentsSubMenu([
           { title: "Computer Science & Engineering", href: "/departments/cse" },
           { title: "Information Technology", href: "/departments/it" }
         ]);
       }
-    } catch (error) {
-      console.error('Error fetching departments:', error);
-      // Fallback to default departments on error
-      setDepartmentsSubMenu([
-        { title: "Computer Science & Engineering", href: "/departments/cse" },
-        { title: "Information Technology", href: "/departments/it" }
-      ]);
-    }
-  };
+    };
 
-  fetchDepartments();
-}, []);
+    fetchDepartments();
+  }, []);
 
   const feesSubMenu = [
     { title: "Registration Fees", href: "/fees/registration" },
@@ -164,15 +165,15 @@ useEffect(() => {
 
   return (
     <>
-  {/* Top Login Bar (Fees moved right next to login) */}
-  <div className="topbar text-white py-2 px-2 sm:px-4">
+      {/* Top Login Bar (Fees moved right next to login) */}
+      <div className="topbar text-white py-2 px-2 sm:px-4">
         <div className="container mx-auto flex justify-between items-center">
           {/* Left side: New Logo */}
           <div className="hidden sm:flex items-center">
             <div className="relative p-2 rounded-lg bg-gradient-to-r from-white via-white to-blue-100 shadow-sm">
-              <img 
-                src={allLogo} 
-                alt="Nalanda Institute of Technology" 
+              <img
+                src={allLogo}
+                alt="Nalanda Institute of Technology"
                 className="h-6 sm:h-8 md:h-10 lg:h-12 w-auto relative z-10"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-white via-blue-50 to-blue-200 opacity-60 rounded-lg animate-pulse"></div>
@@ -237,9 +238,9 @@ useEffect(() => {
                 </DropdownMenu>
               ) : (
                 <div className="relative p-1 rounded-lg bg-gradient-to-r from-white via-white to-blue-100 shadow-sm">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setIsLoginOpen(true)}
                     className="text-gray-700 hover:bg-blue-50 flex items-center relative z-10"
                   >
@@ -268,7 +269,7 @@ useEffect(() => {
       </div>
 
       {/* Main Header */}
-      <motion.header 
+      <motion.header
         className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-header"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -276,14 +277,14 @@ useEffect(() => {
       >
         <div className="container mx-auto px-2 sm:px-4 flex h-14 sm:h-16 items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
-          <motion.div 
+          <motion.div
             className="flex items-center space-x-3 min-w-0 flex-1 md:flex-none"
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.2 }}
           >
-            <img 
-              src={nitLogo} 
-              alt="NIT Logo" 
+            <img
+              src={nitLogo}
+              alt="NIT Logo"
               className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 flex-shrink-0"
             />
             <div className="hidden sm:block min-w-0">
@@ -303,8 +304,8 @@ useEffect(() => {
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <NavigationMenuLink 
-                    href="/" 
+                  <NavigationMenuLink
+                    href="/"
                     className="px-3 py-2 text-sm font-medium hover:text-primary transition-colors"
                   >
                     Home
@@ -380,11 +381,12 @@ useEffect(() => {
                       </div>
                     </div>
                   </NavigationMenuContent>
+                  
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className="text-sm">Departments</NavigationMenuTrigger>
-                  <NavigationMenuContent className="z-50">
+                  <NavigationMenuContent className="z-50 max-h-[70vh] overflow-y-auto">
                     <div className="w-80 p-4 bg-popover border border-border shadow-lg rounded-xl">
                       <div className="grid gap-2">
                         {departmentsSubMenu.map((item) => (
@@ -402,8 +404,8 @@ useEffect(() => {
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuLink 
-                    href="/contact" 
+                  <NavigationMenuLink
+                    href="/contact"
                     className="px-3 py-2 text-sm font-medium hover:text-primary transition-colors flex items-center whitespace-nowrap"
                   >
                     Contact Us
@@ -459,10 +461,10 @@ useEffect(() => {
               <a href="/" className="block py-2 text-sm font-medium hover:text-primary transition-colors">
                 Home
               </a>
-              
+
               {/* Academics Section */}
               <div className="border-b border-border/50">
-                <button 
+                <button
                   onClick={() => toggleMobileSection('academics')}
                   className="w-full flex items-center justify-between py-2 text-sm font-medium hover:text-primary transition-colors"
                 >
@@ -470,7 +472,7 @@ useEffect(() => {
                   <ChevronRight className={`h-4 w-4 transition-transform ${openMobileSection === 'academics' ? 'rotate-90' : ''}`} />
                 </button>
                 {openMobileSection === 'academics' && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
@@ -487,7 +489,7 @@ useEffect(() => {
 
               {/* About Us Section */}
               <div className="border-b border-border/50">
-                <button 
+                <button
                   onClick={() => toggleMobileSection('about')}
                   className="w-full flex items-center justify-between py-2 text-sm font-medium hover:text-primary transition-colors"
                 >
@@ -495,7 +497,7 @@ useEffect(() => {
                   <ChevronRight className={`h-4 w-4 transition-transform ${openMobileSection === 'about' ? 'rotate-90' : ''}`} />
                 </button>
                 {openMobileSection === 'about' && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
@@ -523,7 +525,7 @@ useEffect(() => {
 
               {/* Departments Section */}
               <div className="border-b border-border/50">
-                <button 
+                <button
                   onClick={() => toggleMobileSection('departments')}
                   className="w-full flex items-center justify-between py-2 text-sm font-medium hover:text-primary transition-colors"
                 >
@@ -531,7 +533,7 @@ useEffect(() => {
                   <ChevronRight className={`h-4 w-4 transition-transform ${openMobileSection === 'departments' ? 'rotate-90' : ''}`} />
                 </button>
                 {openMobileSection === 'departments' && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
@@ -548,7 +550,7 @@ useEffect(() => {
 
               {/* Campus Life Section */}
               <div className="border-b border-border/50">
-                <button 
+                <button
                   onClick={() => toggleMobileSection('campus')}
                   className="w-full flex items-center justify-between py-2 text-sm font-medium hover:text-primary transition-colors"
                 >
@@ -556,7 +558,7 @@ useEffect(() => {
                   <ChevronRight className={`h-4 w-4 transition-transform ${openMobileSection === 'campus' ? 'rotate-90' : ''}`} />
                 </button>
                 {openMobileSection === 'campus' && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
@@ -573,7 +575,7 @@ useEffect(() => {
 
               {/* Contact Us Section */}
               <div className="border-b border-border/50">
-                <button 
+                <button
                   onClick={() => toggleMobileSection('contact')}
                   className="w-full flex items-center justify-between py-2 text-sm font-medium hover:text-primary transition-colors"
                 >
@@ -581,7 +583,7 @@ useEffect(() => {
                   <ChevronRight className={`h-4 w-4 transition-transform ${openMobileSection === 'contact' ? 'rotate-90' : ''}`} />
                 </button>
                 {openMobileSection === 'contact' && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}

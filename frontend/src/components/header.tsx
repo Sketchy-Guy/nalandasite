@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 import { motion } from "framer-motion";
 import { Menu, X, Search, User, CreditCard, ChevronDown, LogOut, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -77,16 +78,35 @@ const Header = () => {
     { title: "MSME-Best Business Incubator", href: "/about/msme" }
   ];
 
-  const departmentsSubMenu = [
-    { title: "Computer Science & Engineering", href: "/departments/cse" },
-    { title: "Information Technology", href: "/departments/it" },
-    { title: "Master of Computer Applications", href: "/departments/mca" },
-    { title: "Bachelor of Computer Applications", href: "/departments/bca" },
-    { title: "Mechanical Engineering", href: "/departments/mechanical" },
-    { title: "Electrical Engineering", href: "/departments/electrical" },
-    { title: "Civil Engineering", href: "/departments/civil" },
-    { title: "Master of Business Administration", href: "/departments/mba" }
-  ];
+  const [departmentsSubMenu, setDepartmentsSubMenu] = useState([
+  // These will be shown while loading or if the fetch fails
+  { title: "Computer Science & Engineering", href: "/departments/cse" },
+]);
+
+// Add this effect after the state declaration
+useEffect(() => {
+  const fetchDepartments = async () => {
+    try {
+      const response = await api.departments.list();
+      const departments = response.results || response || [];
+      
+      const formattedDepartments = departments.map((dept: any) => ({
+        title: dept.name,
+        // Use the department's ID in the URL to match the department page route
+        href: `/department/${dept.code || dept.id}`
+      }));
+
+      if (formattedDepartments.length > 0) {
+        setDepartmentsSubMenu(formattedDepartments);
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      // Keep the default departments if there's an error
+    }
+  };
+
+  fetchDepartments();
+}, []);
 
   const feesSubMenu = [
     { title: "Registration Fees", href: "/fees/registration" },

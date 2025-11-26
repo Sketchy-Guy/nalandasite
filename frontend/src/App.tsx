@@ -63,6 +63,7 @@ import MechanicalDepartment from "./pages/departments/Mechanical";
 import ElectricalDepartment from "./pages/departments/Electrical";
 import CivilDepartment from "./pages/departments/Civil";
 import MBADepartment from "./pages/departments/MBA";
+import { DepartmentTemplate } from './components/department-template';
 
 // Admin Components
 import { DepartmentsManager } from "./components/admin/departments-manager";
@@ -145,6 +146,7 @@ const App = () => (
               
               {/* Department Pages */}
               <Route path="/departments" element={<Departments />} />
+              <Route path="/departments/:departmentCode" element={<DepartmentTemplate />} />
               <Route path="/departments/cse" element={<CSEDepartment />} />
               <Route path="/departments/it" element={<ITDepartment />} />
               <Route path="/departments/mca" element={<MCADepartment />} />

@@ -14,6 +14,7 @@ import { DynamicGallery } from './dynamic-gallery';
 import { motion } from 'framer-motion';
 import Header from './header';
 import Footer from './footer';
+import { useParams } from 'react-router-dom';
 
 interface Department {
   id: string;
@@ -42,15 +43,17 @@ interface Faculty {
   photo_url: string;
 }
 
-interface DepartmentTemplateProps {
-  departmentCode: string;
-  fallbackData?: Partial<Department>;
-}
+// interface DepartmentTemplateProps {
+//   departmentCode: string;
+//   fallbackData?: Partial<Department>;
+// }
 
-export function DepartmentTemplate({ departmentCode, fallbackData }: DepartmentTemplateProps) {
+export function DepartmentTemplate() {
+  const { departmentCode } = useParams<{ departmentCode: string }>();
   const [department, setDepartment] = useState<Department | null>(null);
   const [faculty, setFaculty] = useState<Faculty[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fallbackData] = useState<Partial<Department> | undefined>(undefined);
 
   useEffect(() => {
     const fetchDepartmentData = async () => {

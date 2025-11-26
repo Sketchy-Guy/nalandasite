@@ -87,27 +87,39 @@ useEffect(() => {
   const fetchDepartments = async () => {
     try {
       const response = await api.departments.list();
-      const departments = response.results || response || [];
-      
-      const formattedDepartments = departments.map((dept: any) => {
-        // Use dept.id if code is not available, and ensure it's a string
-        const departmentId = dept.code || dept.id;
-        // Make sure we have a valid ID and it's a string
-        if (!departmentId) {
-          console.warn('Department missing ID:', dept);
-          return null;
-        }
-        return {
-          title: dept.name || 'Unnamed Department',
-          // Ensure the URL is always in the plural form
-          href: `/departments/${String(departmentId).toLowerCase()}`
-        };
-      }).filter(Boolean); // Remove any null entries
+      // Ensure we have a valid array, fallback to empty array
+      const departments = Array.isArray(response?.results) 
+        ? response.results 
+        : Array.isArray(response) 
+          ? response 
+          : [];
+
+      const formattedDepartments = departments
+        .filter((dept: any) => {
+          // Filter out any invalid department objects
+          const hasValidId = Boolean(dept?.id || dept?.code);
+          if (!hasValidId) {
+            console.warn('Skipping department - missing id and code:', dept);
+          }
+          return hasValidId;
+        })
+        .map((dept: any) => {
+          // Safely get department ID, default to empty string
+          const departmentId = String(dept?.code || dept?.id || '');
+          
+          return {
+            title: String(dept?.name || 'Unnamed Department'),
+            href: `/departments/${departmentId.toLowerCase()}`,
+            // Preserve original data for debugging
+            _original: dept
+          };
+        });
 
       if (formattedDepartments.length > 0) {
         setDepartmentsSubMenu(formattedDepartments);
       } else {
-        // Fallback to default if no departments found
+        // Fallback to default if no valid departments found
+        console.warn('No valid departments found, using fallback');
         setDepartmentsSubMenu([
           { title: "Computer Science & Engineering", href: "/departments/cse" },
           { title: "Information Technology", href: "/departments/it" }
@@ -115,7 +127,11 @@ useEffect(() => {
       }
     } catch (error) {
       console.error('Error fetching departments:', error);
-      // Keep the default departments if there's an error
+      // Fallback to default departments on error
+      setDepartmentsSubMenu([
+        { title: "Computer Science & Engineering", href: "/departments/cse" },
+        { title: "Information Technology", href: "/departments/it" }
+      ]);
     }
   };
 

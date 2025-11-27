@@ -12,6 +12,36 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
+class Program(BaseModel):
+    """Academic programs (UG, PG, etc.)"""
+    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=20, unique=True)
+    description = models.TextField(blank=True, null=True)
+    is_predefined = models.BooleanField(default=False, help_text="UG, PG are predefined")
+    
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        ordering = ['-is_predefined', 'name']
+
+
+class Trade(BaseModel):
+    """Trades within programs (B.Tech, M.Tech, etc.)"""
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=20)
+    program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name='trades')
+    description = models.TextField(blank=True, null=True)
+    is_predefined = models.BooleanField(default=False, help_text="B.Tech, M.Tech are predefined")
+    
+    def __str__(self):
+        return f"{self.program.name} - {self.name}"
+    
+    class Meta:
+        ordering = ['program', '-is_predefined', 'name']
+        unique_together = [['program', 'code']]
+
+
 def department_hero_upload_path(instance, filename):
     """Generate upload path for department hero images"""
     return f'departments/{instance.code.lower()}/hero/{filename}'
@@ -22,6 +52,12 @@ def department_gallery_upload_path(instance, filename):
 
 class Department(BaseModel):
     """Department model"""
+    # Hierarchy fields
+    program = models.ForeignKey(Program, on_delete=models.PROTECT, related_name='departments', null=True, blank=True)
+    trade = models.ForeignKey(Trade, on_delete=models.SET_NULL, null=True, blank=True, related_name='departments')
+    is_direct_branch = models.BooleanField(default=False, help_text="True if department is directly under program without trade")
+    
+    # Basic fields
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=20, unique=True)
     description = models.TextField(blank=True, null=True)

@@ -5,11 +5,11 @@ from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import (
-    Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club, CampusEvent,
+    Program, Trade, Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club, CampusEvent,
     AcademicService, Topper, CreativeWork, StudentSubmission, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable
 )
 from .serializers import (
-    DepartmentSerializer, DepartmentGalleryImageSerializer, HeroImageSerializer, NoticeSerializer,
+    ProgramSerializer, TradeSerializer, DepartmentSerializer, DepartmentGalleryImageSerializer, HeroImageSerializer, NoticeSerializer,
     MagazineSerializer, ClubSerializer, CampusEventSerializer, AcademicServiceSerializer,
     TopperSerializer, CreativeWorkSerializer, StudentSubmissionSerializer, CampusStatsSerializer, 
     NewsSerializer, ContactInfoSerializer, OfficeLocationSerializer, QuickContactInfoSerializer, TimetableSerializer
@@ -27,6 +27,90 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 
         # Write permissions are only allowed to admin users.
         return request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.role == 'admin'
+
+class ProgramViewSet(viewsets.ModelViewSet):
+    queryset = Program.objects.all()
+    serializer_class = ProgramSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['is_predefined', 'is_active']
+    search_fields = ['name', 'code', 'description']
+    ordering_fields = ['name', 'created_at']
+    
+    @action(detail=False, methods=['get'], permission_classes=[])
+    def hierarchy(self, request):
+        """Get hierarchical structure of programs, trades, and departments for navigation"""
+        programs = Program.objects.filter(is_active=True).prefetch_related(
+            'trades__departments'
+        ).order_by('-is_predefined', 'name')
+        
+        hierarchy_data = []
+        for program in programs:
+            program_data = {
+                'id': program.id,
+                'name': program.name,
+                'code': program.code,
+                'is_predefined': program.is_predefined,
+                'trades': [],
+                'direct_branches': []
+            }
+            
+            # Get trades with their departments
+            trades = program.trades.filter(is_active=True).order_by('-is_predefined', 'name')
+            for trade in trades:
+                departments = trade.departments.filter(is_active=True, is_direct_branch=False).order_by('name')
+                if departments.exists():  # Only include trades that have departments
+                    trade_data = {
+                        'id': trade.id,
+                        'name': trade.name,
+                        'code': trade.code,
+                        'is_predefined': trade.is_predefined,
+                        'departments': [
+                            {
+                                'id': dept.id,
+                                'name': dept.name,
+                                'code': dept.code
+                            }
+                            for dept in departments
+                        ]
+                    }
+                    program_data['trades'].append(trade_data)
+            
+            # Get direct branches (departments without trade)
+            direct_branches = program.departments.filter(
+                is_active=True,
+                is_direct_branch=True
+            ).order_by('name')
+            
+            program_data['direct_branches'] = [
+                {
+                    'id': dept.id,
+                    'name': dept.name,
+                    'code': dept.code
+                }
+                for dept in direct_branches
+            ]
+            
+            hierarchy_data.append(program_data)
+        
+        return Response(hierarchy_data)
+
+
+class TradeViewSet(viewsets.ModelViewSet):
+    queryset = Trade.objects.all()
+    serializer_class = TradeSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['program', 'is_predefined', 'is_active']
+    search_fields = ['name', 'code', 'description']
+    ordering_fields = ['program', 'name', 'created_at']
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        program_id = self.request.query_params.get('program_id')
+        if program_id:
+            queryset = queryset.filter(program_id=program_id)
+        return queryset
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.filter(is_active=True)

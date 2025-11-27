@@ -24,6 +24,8 @@ import LoginPortal from "./login-portal";
 import nitLogo from "@/assets/nit-logo.png";
 import allLogo from "@/assets/All Logo copy.png";
 import { useAuth } from "@/hooks/use-auth";
+import { HierarchicalDepartmentMenu } from "./hierarchical-department-menu";
+import { MobileHierarchicalMenu } from "./mobile-hierarchical-menu";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -83,10 +85,12 @@ const Header = () => {
     // These will be shown while loading or if the fetch fails
     { title: "Computer Science & Engineering", href: "/departments/cse" },
   ]);
-
+  const [departmentHierarchy, setDepartmentHierarchy] = useState<any[]>([]);
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
+        const hierarchyData = await api.programs.hierarchy();
+        setDepartmentHierarchy(hierarchyData || []);
         const response = await api.departments.list();
         // Ensure we have a valid array, fallback to empty array
         const departments = Array.isArray(response?.results)
@@ -381,25 +385,29 @@ const Header = () => {
                       </div>
                     </div>
                   </NavigationMenuContent>
-                  
+
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className="text-sm">Departments</NavigationMenuTrigger>
-                  <NavigationMenuContent className="z-50 max-h-[70vh] overflow-y-auto scrollbar-hide">
-                    <div className="w-80 p-4 bg-popover border border-border shadow-lg rounded-xl">
-                      <div className="grid gap-2">
-                        {departmentsSubMenu.map((item) => (
-                          <NavigationMenuLink
-                            key={item.title}
-                            href={item.href}
-                            className="block px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
-                          >
-                            {item.title}
-                          </NavigationMenuLink>
-                        ))}
+                  <NavigationMenuContent className="z-50">
+                    {departmentHierarchy.length > 0 ? (
+                      <HierarchicalDepartmentMenu hierarchy={departmentHierarchy} />
+                    ) : (
+                      <div className="w-80 p-4 bg-popover border border-border shadow-lg rounded-xl">
+                        <div className="grid gap-2">
+                          {departmentsSubMenu.map((item) => (
+                            <NavigationMenuLink
+                              key={item.title}
+                              href={item.href}
+                              className="block px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
+                            >
+                              {item.title}
+                            </NavigationMenuLink>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </NavigationMenuContent>
                 </NavigationMenuItem>
 
@@ -539,11 +547,17 @@ const Header = () => {
                     exit={{ opacity: 0, height: 0 }}
                     className="ml-4 pb-2 space-y-1"
                   >
-                    {departmentsSubMenu.map((item) => (
-                      <a key={item.title} href={item.href} className="block py-1 text-sm text-muted-foreground hover:text-foreground">
-                        {item.title}
-                      </a>
-                    ))}
+                    {departmentHierarchy.length > 0 ? (
+                      <MobileHierarchicalMenu hierarchy={departmentHierarchy} />
+                    ) : (
+                      <>
+                        {departmentsSubMenu.map((item) => (
+                          <a key={item.title} href={item.href} className="block py-1 text-sm text-muted-foreground hover:text-foreground">
+                            {item.title}
+                          </a>
+                        ))}
+                      </>
+                    )}
                   </motion.div>
                 )}
               </div>

@@ -1,13 +1,15 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    DepartmentViewSet, DepartmentGalleryImageViewSet, HeroImageViewSet, NoticeViewSet,
+    ProgramViewSet, TradeViewSet, DepartmentViewSet, DepartmentGalleryImageViewSet, HeroImageViewSet, NoticeViewSet,
     MagazineViewSet, ClubViewSet, CampusEventViewSet, AcademicServiceViewSet,
     TopperViewSet, CreativeWorkViewSet, StudentSubmissionViewSet, CampusStatsViewSet,
     NewsViewSet, ContactInfoViewSet, OfficeLocationViewSet, QuickContactInfoViewSet, TimetableViewSet
 )
 
 router = DefaultRouter()
+router.register(r'programs', ProgramViewSet)
+router.register(r'trades', TradeViewSet)
 router.register(r'departments', DepartmentViewSet)
 router.register(r'department-gallery-images', DepartmentGalleryImageViewSet)
 router.register(r'hero-images', HeroImageViewSet)

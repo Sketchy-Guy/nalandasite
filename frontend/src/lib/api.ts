@@ -42,7 +42,7 @@ class ApiClient {
       // Token expired, try to refresh
       console.log('Token expired, attempting refresh...');
       await this.refreshToken();
-      
+
       if (this.token) {
         // Retry the request with new token
         headers['Authorization'] = `Bearer ${this.token}`;
@@ -168,7 +168,7 @@ class ApiClient {
       if (response.ok) {
         return response.json();
       }
-      
+
       // Try to parse error response
       let errorData;
       try {
@@ -176,7 +176,7 @@ class ApiClient {
       } catch {
         errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
       }
-      
+
       const error = new Error(errorData.message || `POST ${endpoint} failed`);
       (error as any).response = { data: errorData, status: response.status };
       throw error;
@@ -202,7 +202,7 @@ class ApiClient {
       if (response.ok) {
         return response.json();
       }
-      
+
       // Try to parse error response
       let errorData;
       try {
@@ -210,7 +210,7 @@ class ApiClient {
       } catch {
         errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
       }
-      
+
       const error = new Error(errorData.message || `PUT ${endpoint} failed`);
       (error as any).response = { data: errorData, status: response.status };
       throw error;
@@ -351,6 +351,25 @@ export const api = {
     review: (id: string, data: any) => apiClient.post(`/student-submissions/${id}/review/`, data),
     pending: () => apiClient.get('/student-submissions/pending/'),
     approved: () => apiClient.get('/student-submissions/approved/'),
+  },
+
+  // Programs
+  programs: {
+    list: (params?: any) => apiClient.get('/programs/', params),
+    get: (id: string) => apiClient.get(`/programs/${id}/`),
+    create: (data: any) => apiClient.post('/programs/', data),
+    update: (id: string, data: any) => apiClient.put(`/programs/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/programs/${id}/`),
+    hierarchy: () => apiClient.get('/programs/hierarchy/'),
+  },
+
+  // Trades
+  trades: {
+    list: (params?: any) => apiClient.get('/trades/', params),
+    get: (id: string) => apiClient.get(`/trades/${id}/`),
+    create: (data: any) => apiClient.post('/trades/', data),
+    update: (id: string, data: any) => apiClient.put(`/trades/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/trades/${id}/`),
   },
 
   // Departments

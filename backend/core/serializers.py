@@ -1,8 +1,32 @@
 from rest_framework import serializers
 from .models import (
-    Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club, CampusEvent,
+    Program, Trade, Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club, CampusEvent,
     AcademicService, Topper, CreativeWork, StudentSubmission, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable
 )
+
+class ProgramSerializer(serializers.ModelSerializer):
+    trades_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Program
+        fields = '__all__'
+    
+    def get_trades_count(self, obj):
+        return obj.trades.count()
+
+
+class TradeSerializer(serializers.ModelSerializer):
+    program_name = serializers.CharField(source='program.name', read_only=True)
+    program_code = serializers.CharField(source='program.code', read_only=True)
+    departments_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Trade
+        fields = '__all__'
+    
+    def get_departments_count(self, obj):
+        return obj.departments.count()
+
 
 class DepartmentGalleryImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
@@ -41,6 +65,10 @@ class DepartmentGalleryImageSerializer(serializers.ModelSerializer):
 class DepartmentSerializer(serializers.ModelSerializer):
     hero_image_url = serializers.SerializerMethodField()
     gallery_images = DepartmentGalleryImageSerializer(many=True, read_only=True)
+    program_name = serializers.CharField(source='program.name', read_only=True)
+    program_code = serializers.CharField(source='program.code', read_only=True)
+    trade_name = serializers.CharField(source='trade.name', read_only=True, allow_null=True)
+    trade_code = serializers.CharField(source='trade.code', read_only=True, allow_null=True)
     
     class Meta:
         model = Department

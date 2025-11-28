@@ -79,7 +79,12 @@ class Department(BaseModel):
         return self.name
 
     def delete(self, *args, **kwargs):
-        """Override delete to remove hero image and gallery images from storage"""
+        """Override delete to remove hero image, gallery images, and entire department folder from storage"""
+        import os
+        import shutil
+        from django.conf import settings
+        
+        # Delete hero image
         if self.hero_image:
             if self.hero_image.storage.exists(self.hero_image.name):
                 self.hero_image.storage.delete(self.hero_image.name)
@@ -87,6 +92,15 @@ class Department(BaseModel):
         # Delete all gallery images
         for gallery_image in self.gallery_images.all():
             gallery_image.delete()
+        
+        # Delete the entire department folder
+        department_folder = os.path.join(settings.MEDIA_ROOT, 'departments', self.code)
+        if os.path.exists(department_folder):
+            try:
+                shutil.rmtree(department_folder)
+            except Exception as e:
+                # Log the error but don't prevent deletion
+                print(f"Warning: Could not delete department folder {department_folder}: {str(e)}")
         
         super().delete(*args, **kwargs)
 

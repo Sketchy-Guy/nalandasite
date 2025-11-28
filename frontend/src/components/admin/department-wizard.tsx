@@ -82,6 +82,8 @@ export function DepartmentWizard({ editingDept, onClose, onSuccess }: Department
         achievements: ''
     });
     const [selectedGalleryFiles, setSelectedGalleryFiles] = useState<FileList | null>(null);
+    const [existingHeroImage, setExistingHeroImage] = useState<string | null>(null);
+    const [deleteHeroImage, setDeleteHeroImage] = useState(false);
 
     useEffect(() => {
         fetchPrograms();
@@ -92,6 +94,98 @@ export function DepartmentWizard({ editingDept, onClose, onSuccess }: Department
             fetchTrades(selectedProgram.id);
         }
     }, [selectedProgram]);
+
+    // Handle edit mode - pre-populate form and jump to step 3
+    useEffect(() => {
+        if (editingDept) {
+            // Pre-populate form data from editingDept
+            setFormData({
+                name: editingDept.name || '',
+                code: editingDept.code || '',
+                description: editingDept.description || '',
+                head_name: editingDept.head_name || '',
+                contact_email: editingDept.contact_email || '',
+                hero_image: null,
+                mission: editingDept.mission || '',
+                vision: editingDept.vision || '',
+                facilities: editingDept.facilities || [],
+                programs_offered: editingDept.programs_offered || [],
+                achievements: editingDept.achievements || [],
+                location_details: editingDept.location_details || '',
+                is_active: editingDept.is_active ?? true
+            });
+
+            // Set existing hero image if available
+            setExistingHeroImage(editingDept.hero_image || null);
+            setDeleteHeroImage(false);
+
+            // Fetch and set the program and trade
+            const loadEditData = async () => {
+                try {
+                    // Fetch programs first
+                    const programsData = await api.programs.list();
+                    const allPrograms = programsData.results || programsData || [];
+                    setPrograms(allPrograms);
+
+                    // Find and set the program
+                    const program = allPrograms.find((p: any) => p.id === editingDept.program);
+                    if (program) {
+                        setSelectedProgram(program);
+
+                        // Fetch trades for this program
+                        const tradesData = await api.trades.list({ program_id: program.id });
+                        const allTrades = tradesData.results || tradesData || [];
+                        setTrades(allTrades);
+
+                        // Set trade if not a direct branch
+                        if (!editingDept.is_direct_branch && editingDept.trade) {
+                            const trade = allTrades.find((t: any) => t.id === editingDept.trade);
+                            if (trade) {
+                                setSelectedTrade(trade);
+                            }
+                        } else {
+                            setIsDirectBranch(true);
+                        }
+                    }
+
+                    // Jump directly to step 3 (the form)
+                    setStep(3);
+                } catch (error) {
+                    console.error('Error loading edit data:', error);
+                    toast({
+                        title: 'Error',
+                        description: 'Failed to load department data',
+                        variant: 'destructive'
+                    });
+                }
+            };
+
+            loadEditData();
+        } else {
+            // Reset to step 1 for new department
+            setStep(1);
+            setFormData({
+                name: '',
+                code: '',
+                description: '',
+                head_name: '',
+                contact_email: '',
+                hero_image: null,
+                mission: '',
+                vision: '',
+                facilities: [],
+                programs_offered: [],
+                achievements: [],
+                location_details: '',
+                is_active: true
+            });
+            setSelectedProgram(null);
+            setSelectedTrade(null);
+            setIsDirectBranch(false);
+            setExistingHeroImage(null);
+            setDeleteHeroImage(false);
+        }
+    }, [editingDept]);
 
     const fetchPrograms = async () => {
         try {
@@ -278,6 +372,10 @@ export function DepartmentWizard({ editingDept, onClose, onSuccess }: Department
             // Add hero image if selected
             if (formData.hero_image) {
                 submitData.append('hero_image', formData.hero_image);
+            }
+            // Add delete flag if user wants to delete existing hero image
+            if (deleteHeroImage) {
+                submitData.append('delete_hero_image', 'true');
             }
 
             if (editingDept) {
@@ -561,14 +659,95 @@ export function DepartmentWizard({ editingDept, onClose, onSuccess }: Department
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="hero_image">Hero Image</Label>
-                        <Input
-                            id="hero_image"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleHeroImageChange}
-                        />
+                    {/* Hero Image Section - Redesigned */}
+                    <div className="space-y-4">
+                        <Label className="text-base font-semibold">Hero Image</Label>
+
+                        {/* Existing Hero Image Preview */}
+                        {existingHeroImage && !deleteHeroImage && (
+                            <Card className="overflow-hidden">
+                                <CardContent className="p-0">
+                                    <div className="relative group">
+                                        <img
+                                            src={existingHeroImage}
+                                            alt="Current hero image"
+                                            className="w-full h-64 object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <Button
+                                                type="button"
+                                                variant="destructive"
+                                                size="lg"
+                                                onClick={() => setDeleteHeroImage(true)}
+                                                className="shadow-lg"
+                                            >
+                                                <X className="h-5 w-5 mr-2" />
+                                                Remove Image
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 bg-muted/50">
+                                        <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                            <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                                            Current hero image
+                                        </p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Deletion Confirmation */}
+                        {existingHeroImage && deleteHeroImage && (
+                            <Card className="border-destructive/50 bg-destructive/5">
+                                <CardContent className="p-6">
+                                    <div className="flex items-start gap-4">
+                                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                                            <X className="h-6 w-6 text-destructive" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-semibold text-destructive mb-1">Image Marked for Deletion</h4>
+                                            <p className="text-sm text-muted-foreground mb-3">
+                                                The hero image will be permanently removed when you save changes.
+                                            </p>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setDeleteHeroImage(false)}
+                                            >
+                                                Undo Deletion
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Upload New Image */}
+                        <Card>
+                            <CardContent className="p-6">
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Upload className="h-4 w-4 text-muted-foreground" />
+                                        <span className="text-sm font-medium">
+                                            {existingHeroImage && !deleteHeroImage ? 'Replace Image' : 'Upload Image'}
+                                        </span>
+                                    </div>
+                                    <Input
+                                        id="hero_image"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleHeroImageChange}
+                                        className="cursor-pointer"
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        {existingHeroImage && !deleteHeroImage
+                                            ? 'Upload a new image to replace the current one'
+                                            : 'Recommended size: 1920x1080px (16:9 ratio)'}
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     <div className="space-y-2">

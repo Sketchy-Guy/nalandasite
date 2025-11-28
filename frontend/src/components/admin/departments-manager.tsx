@@ -16,10 +16,19 @@ interface Department {
   description: string;
   head_name: string;
   contact_email: string;
+  program: string;              // ADD THIS - the program ID
   program_name: string;
+  trade: string | null;          // ADD THIS - the trade ID
   trade_name: string | null;
   is_direct_branch: boolean;
   is_active: boolean;
+  mission: string;               // ADD THIS
+  vision: string;                // ADD THIS
+  facilities: string[];          // ADD THIS
+  programs_offered: string[];    // ADD THIS
+  achievements: string[];        // ADD THIS
+  location_details: string;      // ADD THIS
+  hero_image: string | null;
 }
 
 export function DepartmentsManager() {

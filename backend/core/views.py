@@ -130,6 +130,23 @@ class DepartmentViewSet(viewsets.ModelViewSet):
             serializer.save(department=department)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def update(self, request, *args, **kwargs):
+        """Custom update to handle hero image deletion"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Check if user wants to delete the hero image
+        if request.data.get('delete_hero_image') == 'true' and instance.hero_image:
+            # Delete the old hero image file
+            instance.hero_image.delete(save=False)
+            instance.hero_image = None
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        return Response(serializer.data)
 
 class DepartmentGalleryImageViewSet(viewsets.ModelViewSet):
     queryset = DepartmentGalleryImage.objects.all()

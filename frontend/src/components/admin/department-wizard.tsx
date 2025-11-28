@@ -84,6 +84,7 @@ export function DepartmentWizard({ editingDept, onClose, onSuccess }: Department
     const [selectedGalleryFiles, setSelectedGalleryFiles] = useState<FileList | null>(null);
     const [existingHeroImage, setExistingHeroImage] = useState<string | null>(null);
     const [deleteHeroImage, setDeleteHeroImage] = useState(false);
+    const [existingGalleryImages, setExistingGalleryImages] = useState<any[]>([]);
 
     useEffect(() => {
         fetchPrograms();
@@ -118,6 +119,17 @@ export function DepartmentWizard({ editingDept, onClose, onSuccess }: Department
             // Set existing hero image if available
             setExistingHeroImage(editingDept.hero_image || null);
             setDeleteHeroImage(false);
+
+            // Fetch existing gallery images
+            const fetchGalleryImages = async () => {
+                try {
+                    const response = await api.departmentGalleryImages.list({ department: editingDept.id });
+                    setExistingGalleryImages(response.results || []);
+                } catch (error) {
+                    console.error('Failed to fetch gallery images:', error);
+                }
+            };
+            fetchGalleryImages();
 
             // Fetch and set the program and trade
             const loadEditData = async () => {
@@ -184,6 +196,7 @@ export function DepartmentWizard({ editingDept, onClose, onSuccess }: Department
             setIsDirectBranch(false);
             setExistingHeroImage(null);
             setDeleteHeroImage(false);
+            setExistingGalleryImages([]);
         }
     }, [editingDept]);
 
@@ -378,32 +391,36 @@ export function DepartmentWizard({ editingDept, onClose, onSuccess }: Department
                 submitData.append('delete_hero_image', 'true');
             }
 
+            let departmentId: string;
+
             if (editingDept) {
                 await api.departments.update(editingDept.id, submitData);
+                departmentId = editingDept.id;
                 toast({ title: 'Success', description: 'Department updated successfully' });
             } else {
                 const createdDept = await api.departments.create(submitData);
+                departmentId = createdDept.id;
                 toast({ title: 'Success', description: 'Department created successfully' });
+            }
 
-                // Upload gallery images if any
-                if (selectedGalleryFiles && selectedGalleryFiles.length > 0 && createdDept.id) {
-                    for (let i = 0; i < selectedGalleryFiles.length; i++) {
-                        const file = selectedGalleryFiles[i];
-                        const galleryData = new FormData();
-                        const isVideo = file.type.startsWith('video/');
+            // Upload gallery images if any (works for both create and edit)
+            if (selectedGalleryFiles && selectedGalleryFiles.length > 0 && departmentId) {
+                for (let i = 0; i < selectedGalleryFiles.length; i++) {
+                    const file = selectedGalleryFiles[i];
+                    const galleryData = new FormData();
+                    const isVideo = file.type.startsWith('video/');
 
-                        galleryData.append('department', createdDept.id);
-                        galleryData.append('media_type', isVideo ? 'video' : 'image');
-                        galleryData.append('display_order', i.toString());
+                    galleryData.append('department', departmentId);
+                    galleryData.append('media_type', isVideo ? 'video' : 'image');
+                    galleryData.append('display_order', i.toString());
 
-                        if (isVideo) {
-                            galleryData.append('video', file);
-                        } else {
-                            galleryData.append('image', file);
-                        }
-
-                        await api.departmentGalleryImages.create(galleryData);
+                    if (isVideo) {
+                        galleryData.append('video', file);
+                    } else {
+                        galleryData.append('image', file);
                     }
+
+                    await api.departmentGalleryImages.create(galleryData);
                 }
             }
 
@@ -798,6 +815,50 @@ export function DepartmentWizard({ editingDept, onClose, onSuccess }: Department
                             onChange={handleGalleryImagesChange}
                         />
                     </div>
+
+                    {/* Display Existing Gallery Images */}
+                    {existingGalleryImages.length > 0 && (
+                        <div className="mt-4">
+                            <Label className="mb-2 block">Current Gallery ({existingGalleryImages.length} items)</Label>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {existingGalleryImages.map((item) => (
+                                    <Card key={item.id} className="relative overflow-hidden">
+                                        <CardContent className="p-2">
+                                            {item.media_type === 'image' ? (
+                                                <img
+                                                    src={item.image}
+                                                    alt="Gallery"
+                                                    className="w-full h-24 object-cover rounded"
+                                                />
+                                            ) : (
+                                                <video
+                                                    src={item.video}
+                                                    className="w-full h-24 object-cover rounded"
+                                                />
+                                            )}
+                                            <Button
+                                                type="button"
+                                                variant="destructive"
+                                                size="sm"
+                                                className="absolute top-1 right-1 h-6 w-6 p-0"
+                                                onClick={async () => {
+                                                    try {
+                                                        await api.departmentGalleryImages.delete(item.id);
+                                                        setExistingGalleryImages(prev => prev.filter(i => i.id !== item.id));
+                                                        toast({ title: 'Success', description: 'Image deleted' });
+                                                    } catch (error) {
+                                                        toast({ title: 'Error', description: 'Failed to delete', variant: 'destructive' });
+                                                    }
+                                                }}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex gap-2">
                         <Button

@@ -9,10 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Trophy, 
-  Medal, 
-  Award, 
+import {
+  Trophy,
+  Medal,
+  Award,
   Star,
   Plus,
   Edit,
@@ -80,10 +80,10 @@ export default function AcademicExcellenceManager() {
   const fetchData = async () => {
     try {
       const [toppersResponse, departmentsResponse] = await Promise.all([
-        api.toppers.list(),
+        api.toppers.list({ page_size: 1000 }),
         api.departments.list()
       ]);
-      
+
       setToppers(toppersResponse.results || []);
       setDepartments(departmentsResponse.results || []);
       // Note: Awards/achievements functionality can be added later if needed
@@ -134,7 +134,7 @@ export default function AcademicExcellenceManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const achievementsArray = formData.achievements
         .split(',')
@@ -253,13 +253,13 @@ export default function AcademicExcellenceManager() {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                 />
               </div>
               <div>
                 <Label htmlFor="department">Department</Label>
-                <Select value={formData.department} onValueChange={(value) => setFormData({...formData, department: value})}>
+                <Select value={formData.department} onValueChange={(value) => setFormData({ ...formData, department: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
@@ -286,7 +286,7 @@ export default function AcademicExcellenceManager() {
                     min="2020"
                     max="2030"
                     value={formData.year}
-                    onChange={(e) => setFormData({...formData, year: parseInt(e.target.value)})}
+                    onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
                     required
                   />
                 </div>
@@ -297,7 +297,7 @@ export default function AcademicExcellenceManager() {
                     type="number"
                     min="1"
                     value={formData.rank}
-                    onChange={(e) => setFormData({...formData, rank: parseInt(e.target.value)})}
+                    onChange={(e) => setFormData({ ...formData, rank: parseInt(e.target.value) })}
                     required
                   />
                 </div>
@@ -310,7 +310,7 @@ export default function AcademicExcellenceManager() {
                     min="0"
                     max="10"
                     value={formData.cgpa}
-                    onChange={(e) => setFormData({...formData, cgpa: parseFloat(e.target.value)})}
+                    onChange={(e) => setFormData({ ...formData, cgpa: parseFloat(e.target.value) })}
                     required
                   />
                 </div>
@@ -319,9 +319,9 @@ export default function AcademicExcellenceManager() {
                 <Label htmlFor="photo">Photo</Label>
                 {editingTopper && editingTopper.photo_url && (
                   <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                    <img 
-                      src={editingTopper.photo_url} 
-                      alt="Current photo" 
+                    <img
+                      src={editingTopper.photo_url}
+                      alt="Current photo"
                       className="w-16 h-16 rounded-full object-cover border-2 border-border"
                     />
                     <div>
@@ -334,7 +334,7 @@ export default function AcademicExcellenceManager() {
                   id="photo"
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setFormData({...formData, photo: e.target.files?.[0] || null})}
+                  onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] || null })}
                   className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                 />
                 {!editingTopper?.photo_url && (
@@ -348,7 +348,7 @@ export default function AcademicExcellenceManager() {
                 <Textarea
                   id="achievements"
                   value={formData.achievements}
-                  onChange={(e) => setFormData({...formData, achievements: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, achievements: e.target.value })}
                   placeholder="Achievement 1, Achievement 2, Achievement 3"
                 />
               </div>

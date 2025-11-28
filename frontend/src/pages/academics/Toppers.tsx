@@ -27,25 +27,25 @@ const ToppersPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
-  
+
   // Get filter type from URL params (all or recent)
   const filterType = searchParams.get('filter') || 'all';
-  
+
   const fetchToppers = async () => {
     try {
-      const response = await api.toppers.list();
+      const response = await api.toppers.list({ page_size: 1000 });
       let filteredToppers = (response.results || [])
         .filter((topper: Topper) => topper.is_active);
-      
+
       // Apply filter based on URL parameter
       if (filterType === 'recent') {
         // Show only toppers from the last 2 years (recent semester exams)
         const currentYear = new Date().getFullYear();
-        filteredToppers = filteredToppers.filter((topper: Topper) => 
+        filteredToppers = filteredToppers.filter((topper: Topper) =>
           topper.year >= currentYear - 1
         );
       }
-      
+
       // Sort by year (desc) then rank (asc)
       filteredToppers.sort((a: Topper, b: Topper) => {
         if (a.year !== b.year) {
@@ -53,7 +53,7 @@ const ToppersPage = () => {
         }
         return a.rank - b.rank;
       });
-      
+
       setToppers(filteredToppers);
     } catch (error) {
       console.error('Error fetching toppers:', error);
@@ -101,11 +101,11 @@ const ToppersPage = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        
+
         {/* Hero Section with Video Background */}
         <section className="py-16 relative overflow-hidden">
           {/* Video Background */}
-          <video 
+          <video
             className="absolute inset-0 w-full h-full object-cover opacity-40"
             autoPlay
             muted
@@ -114,13 +114,13 @@ const ToppersPage = () => {
           >
             <source src="/src/assets/nitdroneshot1.mp4" type="video/mp4" />
           </video>
-          
+
           {/* Overlay gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-muted/20 via-muted/15 to-muted/25 pointer-events-none"></div>
-          
+
           {/* Glass effect */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/10 pointer-events-none"></div>
-          
+
           <div className="container mx-auto px-4 relative z-10">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto"></div>
@@ -128,7 +128,7 @@ const ToppersPage = () => {
             </div>
           </div>
         </section>
-        
+
         <Footer />
       </div>
     );
@@ -137,11 +137,11 @@ const ToppersPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       {/* Hero Section with Video Background */}
       <section className="py-16 relative overflow-hidden">
         {/* Video Background */}
-        <video 
+        <video
           className="absolute inset-0 w-full h-full object-cover opacity-40"
           autoPlay
           muted
@@ -150,13 +150,13 @@ const ToppersPage = () => {
         >
           <source src="/src/assets/nitdroneshot1.mp4" type="video/mp4" />
         </video>
-        
+
         {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-muted/20 via-muted/15 to-muted/25 pointer-events-none"></div>
-        
+
         {/* Glass effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/10 pointer-events-none"></div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
           {/* Header */}
           <div className="text-center mb-12">
@@ -167,7 +167,7 @@ const ToppersPage = () => {
               </h1>
             </div>
             <p className="text-lg text-foreground/90 max-w-3xl mx-auto drop-shadow-md">
-              {filterType === 'recent' 
+              {filterType === 'recent'
                 ? 'Celebrating our outstanding students from recent semester examinations'
                 : 'Honoring our exceptional students who have achieved remarkable academic success from 2016 to 2025'
               }
@@ -185,7 +185,7 @@ const ToppersPage = () => {
             <Filter className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-medium">Filters:</span>
           </div>
-          
+
           <Select value={selectedYear} onValueChange={setSelectedYear}>
             <SelectTrigger className="w-32">
               <Calendar className="w-4 h-4 mr-2" />
@@ -243,8 +243,8 @@ const ToppersPage = () => {
         {filteredToppers.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredToppers.map((topper, index) => (
-              <Card 
-                key={topper.id} 
+              <Card
+                key={topper.id}
                 className="relative overflow-hidden shadow-elegant hover:shadow-lg transition-smooth animate-fade-in-up"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
@@ -257,8 +257,8 @@ const ToppersPage = () => {
                   {/* Student Image */}
                   <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden border-4 border-primary/20">
                     {topper.photo_url ? (
-                      <img 
-                        src={topper.photo_url} 
+                      <img
+                        src={topper.photo_url}
                         alt={topper.name}
                         className="w-full h-full object-cover"
                       />
@@ -271,7 +271,7 @@ const ToppersPage = () => {
 
                   <h3 className="text-lg font-bold mb-2">{topper.name}</h3>
                   <p className="text-sm text-muted-foreground mb-3">{topper.department}</p>
-                  
+
                   <div className="space-y-3">
                     <div className="bg-primary/10 rounded-lg p-3">
                       <div className="text-xl font-bold text-primary">{topper.cgpa}</div>

@@ -292,11 +292,14 @@ const Header = () => {
               className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 flex-shrink-0"
             />
             <div className="hidden sm:block min-w-0">
-              <h1 className="text-sm sm:text-base lg:text-lg font-bold text-foreground leading-tight">
-                <span className="hidden lg:inline">Nalanda Institute of Technology</span>
-                <span className="lg:hidden">NIT Nalanda</span>
+              <h1 className="text-base sm:text-lg lg:text-xl font-bold text-foreground leading-tight">
+                <span className="hidden lg:inline">नालंदा प्रौद्योगिकी संस्थान, भुवनेश्वर</span>
+                <span className="lg:hidden">Nalanda</span>
               </h1>
-              <p className="text-xs text-muted-foreground hidden md:block">Excellence in Education</p>
+              <div className="hidden md:block border-t border-muted-foreground/30 my-1"></div>
+              <p className="text-sm sm:text-base lg:text-lg font-semibold text-foreground hidden md:block leading-tight">
+                <span className="hidden lg:inline">Nalanda Institute of Technology</span>
+              </p>
             </div>
             <div className="sm:hidden">
               <h1 className="text-sm font-bold text-foreground">Nalanda Institute of Technology</h1>

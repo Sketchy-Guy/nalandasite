@@ -47,7 +47,7 @@ import SocialConsciousness from "./pages/campus-life/SocialConsciousness";
 import OtherFacilities from "./pages/campus-life/OtherFacilities";
 import PublicationsManager from "./components/admin/publications-manager";
 import AmenitiesManager from "./components/admin/amenities-manager";
-import AboutPagesManager from "./components/admin/about-pages-manager";
+// import AboutPagesManager from "./components/admin/about-pages-manager"; // Unused - kept for future use
 import AdminLogin from "./pages/admin/AdminLogin";
 import NotFound from "./pages/NotFound";
 import Contact from "./pages/Contact";
@@ -55,14 +55,6 @@ import Departments from "./pages/Departments";
 import StudentDashboard from "./pages/StudentDashboard";
 
 // Department Pages
-import CSEDepartment from "./pages/departments/CSE";
-import ITDepartment from "./pages/departments/IT";
-import MCADepartment from "./pages/departments/MCA";
-import BCADepartment from "./pages/departments/BCA";
-import MechanicalDepartment from "./pages/departments/Mechanical";
-import ElectricalDepartment from "./pages/departments/Electrical";
-import CivilDepartment from "./pages/departments/Civil";
-import MBADepartment from "./pages/departments/MBA";
 import { DepartmentTemplate } from './components/department-template';
 
 // Admin Components
@@ -117,7 +109,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              
+
               {/* Academic Pages */}
               <Route path="/academics/timetable" element={<TimetablePage />} />
               <Route path="/academics/fees" element={<FeesPage />} />
@@ -129,7 +121,7 @@ const App = () => (
               <Route path="/academics/duplicate-degree" element={<DuplicateDegreePage />} />
               <Route path="/academics/orientation" element={<OrientationPage />} />
               <Route path="/academics/inclusive-education" element={<InclusiveEducationPage />} />
-              
+
               {/* About Us Pages */}
               <Route path="/about" element={<About />} />
               <Route path="/about/vision-mission" element={<VisionMission />} />
@@ -143,19 +135,11 @@ const App = () => (
               <Route path="/about/accreditation/naac" element={<NAAC />} />
               <Route path="/about/accreditation/nba" element={<NBA />} />
               <Route path="/about/accreditation/siro" element={<SIRO />} />
-              
-              {/* Department Pages */}
+
+              {/* Department Pages - Using dynamic routing */}
               <Route path="/departments" element={<Departments />} />
               <Route path="/departments/:departmentCode" element={<DepartmentTemplate />} />
-              <Route path="/departments/cse" element={<CSEDepartment />} />
-              <Route path="/departments/it" element={<ITDepartment />} />
-              <Route path="/departments/mca" element={<MCADepartment />} />
-              <Route path="/departments/bca" element={<BCADepartment />} />
-              <Route path="/departments/mechanical" element={<MechanicalDepartment />} />
-              <Route path="/departments/electrical" element={<ElectricalDepartment />} />
-              <Route path="/departments/civil" element={<CivilDepartment />} />
-              <Route path="/departments/mba" element={<MBADepartment />} />
-              
+
               <Route path="/campus-life/overview" element={<Overview />} />
               <Route path="/campus-life/sports" element={<Sports />} />
               <Route path="/campus-life/hostel" element={<Hostel />} />
@@ -166,29 +150,29 @@ const App = () => (
               <Route path="/campus-life/amenities" element={<Amenities />} />
               <Route path="/campus-life/publications" element={<Publications />} />
               <Route path="/campus-life/festivals" element={<Festivals />} />
-        <Route path="/campus-life/womens-forum" element={<WomensForum />} />
-        <Route path="/campus-life/social-consciousness" element={<SocialConsciousness />} />
-        <Route path="/campus-life/other-facilities" element={<OtherFacilities />} />
+              <Route path="/campus-life/womens-forum" element={<WomensForum />} />
+              <Route path="/campus-life/social-consciousness" element={<SocialConsciousness />} />
+              <Route path="/campus-life/other-facilities" element={<OtherFacilities />} />
               <Route path="/campus-life/clubs" element={<Clubs />} />
               <Route path="/campus-life/innovation" element={<Innovation />} />
               <Route path="/campus-life/social" element={<SocialConsciousness />} />
               <Route path="/campus-life/social-consciousness" element={<SocialConsciousness />} />
               <Route path="/campus-life/facilities" element={<OtherFacilities />} />
               <Route path="/campus-life/other-facilities" element={<OtherFacilities />} />
-              
+
               {/* Contact Page */}
               <Route path="/contact" element={<Contact />} />
-              
+
               {/* Student Dashboard */}
               <Route path="/student/dashboard" element={<StudentDashboard />} />
-              
+
               {/* Admin Login */}
               <Route path="/admin/login" element={<AdminLogin />} />
-              
+
               {/* Campus Life Pages */}
               <Route path="/campus-life/student-activities" element={<StudentActivities />} />
               <Route path="/campus-life/innovation" element={<Innovation />} />
-              
+
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
@@ -207,7 +191,7 @@ const App = () => (
                 <Route path="transcripts" element={<TranscriptsManager />} />
                 <Route path="publications" element={<PublicationsManager />} />
                 <Route path="amenities" element={<AmenitiesManager />} />
-                <Route path="about-pages" element={<AboutPagesManager />} />
+                {/* <Route path="about-pages" element={<AboutPagesManager />} /> */} {/* Unused - kept for future use */}
                 <Route path="departments" element={<DepartmentsManager />} />
                 <Route path="users" element={<UsersManager />} />
                 <Route path="faculty" element={<FacultyManager />} />
@@ -231,7 +215,7 @@ const App = () => (
                 <Route path="leadership" element={<LeadershipManager />} />
                 <Route path="settings" element={<SettingsManager />} />
               </Route>
-              
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

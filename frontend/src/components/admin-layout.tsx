@@ -50,7 +50,7 @@ const navigationItems = [
     group: "Content"
   },
   {
-    title: "News & Announcements", 
+    title: "News & Announcements",
     icon: FileText,
     url: "/admin/news",
     group: "Content"
@@ -235,12 +235,12 @@ const navigationItems = [
     url: "/admin/innovation",
     group: "Campus Life"
   },
-  {
-    title: "About Pages",
-    icon: Info,
-    url: "/admin/about-pages",
-    group: "About Us"
-  },
+  // {
+  //   title: "About Pages",
+  //   icon: Info,
+  //   url: "/admin/about-pages",
+  //   group: "About Us"
+  // },
   {
     title: "Awards & Achievements",
     icon: Award,
@@ -293,8 +293,8 @@ function AdminSidebar() {
   };
 
   const getNavCls = (path: string) =>
-    isActive(path) 
-      ? "bg-primary/10 text-primary font-medium border-r-2 border-primary" 
+    isActive(path)
+      ? "bg-primary/10 text-primary font-medium border-r-2 border-primary"
       : "hover:bg-muted/50";
 
   return (
@@ -374,7 +374,7 @@ export default function AdminLayout() {
               </Button>
             </div>
           </header>
-          
+
           <main className="flex-1 overflow-auto">
             <div className="w-full p-4">
               <Outlet />

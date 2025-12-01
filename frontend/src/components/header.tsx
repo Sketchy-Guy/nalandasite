@@ -289,7 +289,7 @@ const Header = () => {
             <img
               src={nitLogo}
               alt="NIT Logo"
-              className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 flex-shrink-0"
+              className="h-8 sm:h-10 md:h-12 w-auto flex-shrink-0"
             />
             <div className="hidden sm:block min-w-0">
               <h1 className="text-base sm:text-lg lg:text-xl font-bold text-foreground leading-tight">

@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
-import { 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Facebook, 
-  Twitter, 
-  Instagram, 
-  Linkedin, 
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
   Youtube,
   GraduationCap,
   Users,
@@ -70,7 +70,7 @@ const Footer = () => {
             </div>
 
             <p className="text-muted-foreground leading-relaxed">
-              Leading the future of academic excellence with innovative programs, world-class faculty, 
+              Leading the future of academic excellence with innovative programs, world-class faculty,
               and cutting-edge research facilities. Empowering students to become tomorrow's leaders.
             </p>
 
@@ -78,7 +78,7 @@ const Footer = () => {
             <div className="space-y-3">
               <div className="flex items-center space-x-3 text-sm">
                 <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
-                <a 
+                <a
                   href="https://www.google.com/maps/dir//Nalanda+Institute+of+Technology+Buddhist+Villa,+Khandagiri+-+Chandaka+Rd,+Bhubaneswar,+Odisha+754012/@20.3659638,85.6785819,12z/data=!4m8!4m7!1m0!1m5!1m1!1s0x3a19060462635441:0x2697f0bcc78c2240!2m2!1d85.7609836!2d20.3659831?entry=ttu&g_ep=EgoyMDI1MTExMi4wIKXMDSoASAFQAw%3D%3D"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -89,16 +89,16 @@ const Footer = () => {
               </div>
               <div className="flex items-center space-x-3 text-sm">
                 <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                <a 
-                  href="tel:+919937165074"
+                <a
+                  href="tel:+918249791801"
                   className="text-muted-foreground hover:text-primary transition-smooth"
                 >
-                  +91 99371 65074
+                  +91 8249791801
                 </a>
               </div>
               <div className="flex items-center space-x-3 text-sm">
                 <Mail className="w-4 h-4 text-primary flex-shrink-0" />
-                <a 
+                <a
                   href="mailto:info@thenalanda.com"
                   className="text-muted-foreground hover:text-primary transition-smooth"
                 >
@@ -188,8 +188,8 @@ const Footer = () => {
               </p>
             </div>
             <div className="flex space-x-2">
-              <Input 
-                placeholder="Enter your email" 
+              <Input
+                placeholder="Enter your email"
                 className="flex-1"
                 type="email"
               />

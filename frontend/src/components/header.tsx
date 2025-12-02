@@ -302,7 +302,13 @@ const Header = () => {
               </p>
             </div>
             <div className="sm:hidden">
-              <h1 className="text-sm font-bold text-foreground">Nalanda Institute of Technology</h1>
+              <h1 className="text-base font-bold text-foreground leading-tight">
+                नालंदा प्रौद्योगिकी संस्थान, भुवनेश्वर
+              </h1>
+              <div className="border-t border-muted-foreground/30 my-1"></div>
+              <p className="text-sm font-semibold text-foreground leading-tight">
+                Nalanda Institute of Technology
+              </p>
             </div>
           </motion.div>
 

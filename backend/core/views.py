@@ -6,13 +6,15 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import (
     Program, Trade, Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club, CampusEvent,
-    AcademicService, Topper, CreativeWork, StudentSubmission, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable
+    AcademicService, Topper, CreativeWork, StudentSubmission, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable,
+    FeesStructure
 )
 from .serializers import (
     ProgramSerializer, TradeSerializer, DepartmentSerializer, DepartmentGalleryImageSerializer, HeroImageSerializer, NoticeSerializer,
     MagazineSerializer, ClubSerializer, CampusEventSerializer, AcademicServiceSerializer,
     TopperSerializer, CreativeWorkSerializer, StudentSubmissionSerializer, CampusStatsSerializer, 
-    NewsSerializer, ContactInfoSerializer, OfficeLocationSerializer, QuickContactInfoSerializer, TimetableSerializer
+    NewsSerializer, ContactInfoSerializer, OfficeLocationSerializer, QuickContactInfoSerializer, TimetableSerializer,
+    FeesStructureSerializer
 )
 
 class IsAdminOrReadOnly(permissions.BasePermission):
@@ -446,4 +448,28 @@ class TimetableViewSet(viewsets.ModelViewSet):
         )
         serializer = self.get_serializer(timetables, many=True)
         return Response(serializer.data)
+
+
+class FeesStructureViewSet(viewsets.ModelViewSet):
+    queryset = FeesStructure.objects.all()  # Show all for admin
+    serializer_class = FeesStructureSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['academic_year', 'semester', 'department', 'is_active']
+    search_fields = ['title', 'description', 'department']
+    ordering_fields = ['created_at', 'due_date']
+    
+    def get_queryset(self):
+        """Override to show only active fees for non-admin users"""
+        if self.request.user.is_staff or (hasattr(self.request.user, 'profile') and self.request.user.profile.role == 'admin'):
+            return FeesStructure.objects.all()
+        return FeesStructure.objects.filter(is_active=True)
+    
+    @action(detail=False, methods=['get'], permission_classes=[])
+    def category_choices(self, request):
+        """Return available fee category choices"""
+        return Response([
+            {'value': choice[0], 'label': choice[1]} 
+            for choice in FeesStructure.CATEGORY_CHOICES
+        ])
 

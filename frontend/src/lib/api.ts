@@ -475,4 +475,14 @@ export const api = {
 
   // Generic delete method
   delete: (endpoint: string) => apiClient.delete(endpoint),
+
+  // Fees Structure
+  fees: {
+    list: (params?: any) => apiClient.get('/fees-structure/', params),
+    get: (id: string) => apiClient.get(`/fees-structure/${id}/`),
+    create: (data: any) => apiClient.post('/fees-structure/', data),
+    update: (id: string, data: any) => apiClient.put(`/fees-structure/${id}/`, data),
+    patch: (id: string, data: any) => apiClient.patch(`/fees-structure/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/fees-structure/${id}/`),
+  },
 };

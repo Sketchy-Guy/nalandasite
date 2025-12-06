@@ -10,13 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
+
+interface FeeItem {
+  category: string;
+  label: string;
+  amount: number;
+}
 
 interface FeesStructure {
   id: string;
   title: string;
   description: string | null;
-  category: string;
+  fee_items: FeeItem[];
+  total_amount?: number;
   academic_year: string;
   semester: string | null;
   department: string | null;
@@ -38,7 +45,7 @@ export default function FeesManager() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: 'tuition',
+    fee_items: [] as FeeItem[],
     academic_year: '2024-25',
     semester: '',
     department: '',
@@ -65,13 +72,8 @@ export default function FeesManager() {
 
   const fetchFees = async () => {
     try {
-      const { data, error } = await supabase
-        .from('fees_structure')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setFees(data || []);
+      const response = await api.fees.list();
+      setFees(response.results || response);
     } catch (error) {
       console.error('Error fetching fees:', error);
       toast({
@@ -88,7 +90,7 @@ export default function FeesManager() {
     setFormData({
       title: '',
       description: '',
-      category: 'tuition',
+      fee_items: [],
       academic_year: '2024-25',
       semester: '',
       department: '',
@@ -102,7 +104,7 @@ export default function FeesManager() {
     setFormData({
       title: fee.title,
       description: fee.description || '',
-      category: fee.category,
+      fee_items: fee.fee_items || [],
       academic_year: fee.academic_year,
       semester: fee.semester || '',
       department: fee.department || '',
@@ -115,38 +117,26 @@ export default function FeesManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const feeData = {
         title: formData.title,
         description: formData.description || null,
-        category: formData.category,
+        fee_items: formData.fee_items,
         academic_year: formData.academic_year,
         semester: formData.semester || null,
         department: formData.department || null,
-        amount: formData.amount ? parseFloat(formData.amount) : null,
         due_date: formData.due_date || null,
       };
 
       if (editingFee) {
-        const { error } = await supabase
-          .from('fees_structure')
-          .update(feeData)
-          .eq('id', editingFee.id);
-
-        if (error) throw error;
-
+        await api.fees.update(editingFee.id, feeData);
         toast({
           title: 'Success',
           description: 'Fee structure updated successfully',
         });
       } else {
-        const { error } = await supabase
-          .from('fees_structure')
-          .insert(feeData);
-
-        if (error) throw error;
-
+        await api.fees.create(feeData);
         toast({
           title: 'Success',
           description: 'Fee structure created successfully',
@@ -168,18 +158,11 @@ export default function FeesManager() {
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('fees_structure')
-        .update({ is_active: !currentStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-
+      await api.fees.patch(id, { is_active: !currentStatus });
       toast({
         title: 'Success',
         description: `Fee structure ${!currentStatus ? 'activated' : 'deactivated'}`,
       });
-
       fetchFees();
     } catch (error) {
       console.error('Error updating fee status:', error);
@@ -195,18 +178,11 @@ export default function FeesManager() {
     if (!confirm('Are you sure you want to delete this fee structure?')) return;
 
     try {
-      const { error } = await supabase
-        .from('fees_structure')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
+      await api.fees.delete(id);
       toast({
         title: 'Success',
         description: 'Fee structure deleted successfully',
       });
-
       fetchFees();
     } catch (error) {
       console.error('Error deleting fee structure:', error);
@@ -220,7 +196,9 @@ export default function FeesManager() {
 
   const filteredFees = fees.filter((fee) =>
     fee.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    fee.category.toLowerCase().includes(searchTerm.toLowerCase())
+    fee.fee_items?.some(item =>
+      item.label.toLowerCase().includes(searchTerm.toLowerCase())
+    )
   );
 
   const formatAmount = (amount: number | null) => {
@@ -256,7 +234,7 @@ export default function FeesManager() {
               Add Fee Structure
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingFee ? 'Edit' : 'Add'} Fee Structure</DialogTitle>
             </DialogHeader>
@@ -279,29 +257,91 @@ export default function FeesManager() {
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="category">Category</Label>
-                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.value} value={category.value}>
-                          {category.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="amount">Amount (₹)</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  />
+                <div className="col-span-2">
+                  <Label>Fee Items</Label>
+                  <div className="space-y-3 p-3 border rounded-md">
+                    {formData.fee_items.map((item, index) => (
+                      <div key={index} className="flex gap-2 items-end">
+                        <div className="flex-1">
+                          <Label className="text-xs">Category</Label>
+                          <Select
+                            value={item.category}
+                            onValueChange={(value) => {
+                              const newItems = [...formData.fee_items];
+                              const selectedCat = categories.find(c => c.value === value);
+                              newItems[index] = {
+                                category: value,
+                                label: selectedCat?.label || value,
+                                amount: item.amount
+                              };
+                              setFormData({ ...formData, fee_items: newItems });
+                            }}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories.map((cat) => (
+                                <SelectItem key={cat.value} value={cat.value}>
+                                  {cat.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex-1">
+                          <Label className="text-xs">Amount (₹)</Label>
+                          <Input
+                            type="number"
+                            value={item.amount === 0 ? '' : item.amount}
+                            onChange={(e) => {
+                              const newItems = [...formData.fee_items];
+                              const value = e.target.value;
+                              newItems[index].amount = value === '' ? 0 : parseFloat(value);
+                              setFormData({ ...formData, fee_items: newItems });
+                            }}
+                            onFocus={(e) => e.target.select()}
+                            placeholder="0"
+                            className="h-9"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            const newItems = formData.fee_items.filter((_, i) => i !== index);
+                            setFormData({ ...formData, fee_items: newItems });
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData({
+                          ...formData,
+                          fee_items: [...formData.fee_items, { category: 'tuition', label: 'Tuition Fees', amount: 0 }]
+                        });
+                      }}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Fee Item
+                    </Button>
+                    {formData.fee_items.length > 0 && (
+                      <div className="pt-2 border-t">
+                        <div className="flex justify-between font-semibold">
+                          <span>Total Amount:</span>
+                          <span>₹{formData.fee_items.reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="academic_year">Academic Year</Label>
@@ -417,9 +457,28 @@ export default function FeesManager() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">
-                      {categories.find(cat => cat.value === fee.category)?.label || fee.category}
-                    </Badge>
+                    <div className="space-y-1">
+                      {fee.fee_items && fee.fee_items.length > 0 ? (
+                        fee.fee_items.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <Badge variant="secondary" className="text-xs">
+                              {idx + 1}. {item.label}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              ₹{item.amount.toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-muted-foreground text-sm">No fee items</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>{fee.academic_year}</TableCell>
+                  <TableCell>
+                    <div className="font-semibold">
+                      {fee.total_amount ? `₹${fee.total_amount.toLocaleString('en-IN')}` : '₹0'}
+                    </div>
                   </TableCell>
                   <TableCell>{fee.academic_year}</TableCell>
                   <TableCell>{formatAmount(fee.amount)}</TableCell>

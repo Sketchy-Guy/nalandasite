@@ -4,7 +4,8 @@ from .views import (
     ProgramViewSet, TradeViewSet, DepartmentViewSet, DepartmentGalleryImageViewSet, HeroImageViewSet, NoticeViewSet,
     MagazineViewSet, ClubViewSet, CampusEventViewSet, AcademicServiceViewSet,
     TopperViewSet, CreativeWorkViewSet, StudentSubmissionViewSet, CampusStatsViewSet,
-    NewsViewSet, ContactInfoViewSet, OfficeLocationViewSet, QuickContactInfoViewSet, TimetableViewSet
+    NewsViewSet, ContactInfoViewSet, OfficeLocationViewSet, QuickContactInfoViewSet, TimetableViewSet,
+    FeesStructureViewSet
 )
 
 router = DefaultRouter()
@@ -27,6 +28,7 @@ router.register(r'contact-info', ContactInfoViewSet)
 router.register(r'office-locations', OfficeLocationViewSet)
 router.register(r'quick-contact-info', QuickContactInfoViewSet)
 router.register(r'timetables', TimetableViewSet)
+router.register(r'fees-structure', FeesStructureViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

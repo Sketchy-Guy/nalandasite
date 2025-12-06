@@ -4,17 +4,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { CreditCard, Search, Calendar, DollarSign } from "lucide-react";
+import { CreditCard, Search, Calendar, IndianRupee, FileText, Shield, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
+
+interface FeeItem {
+  category: string;
+  label: string;
+  amount: number;
+}
 
 interface Fee {
   id: string;
   title: string;
   description: string;
-  category: string;
-  amount: number;
+  fee_items: FeeItem[];
+  total_amount?: number;
   department: string;
   semester: string;
   academic_year: string;
@@ -35,13 +41,11 @@ const FeesPage = () => {
 
   const fetchFees = async () => {
     try {
-      const response = await api.academicServices.list();
-      // Filter for fee-related services
-      const feeData = (response.results || []).filter((item: any) => 
-        item.category?.toLowerCase().includes('fee') || 
-        item.title?.toLowerCase().includes('fee')
-      );
-      setFees(feeData);
+      const response = await api.fees.list();
+      const feeData = response.results || response;
+      // Filter only active fees for public display
+      const activeFees = feeData.filter((fee: any) => fee.is_active);
+      setFees(activeFees);
     } catch (error) {
       console.error("Error fetching fees:", error);
     } finally {
@@ -51,10 +55,15 @@ const FeesPage = () => {
 
   const filteredFees = fees.filter((fee) => {
     const matchesSearch = fee.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         fee.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || fee.category === categoryFilter;
-    const matchesDepartment = departmentFilter === "all" || fee.department === departmentFilter;
-    
+      fee.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      fee.fee_items?.some(item => item.label.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesCategory = categoryFilter === "all" ||
+      fee.fee_items?.some(item => item.category === categoryFilter);
+
+    const matchesDepartment = departmentFilter === "all" ||
+      fee.department?.toLowerCase().includes(departmentFilter.toLowerCase());
+
     return matchesSearch && matchesCategory && matchesDepartment;
   });
 
@@ -69,10 +78,8 @@ const FeesPage = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-    }).format(amount);
+    const formatted = new Intl.NumberFormat('en-IN').format(amount);
+    return `Rs. ${formatted}/-`;
   };
 
   if (loading) {
@@ -191,23 +198,39 @@ const FeesPage = () => {
                           {fee.description}
                         </CardDescription>
                       </div>
-                      <Badge variant={getCategoryColor(fee.category)}>
-                        {fee.category.charAt(0).toUpperCase() + fee.category.slice(1)}
-                      </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {/* Amount */}
-                      <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg">
-                        <DollarSign className="h-5 w-5 text-primary" />
-                        <div>
-                          <span className="text-sm font-medium text-muted-foreground">Amount</span>
-                          <p className="text-xl font-bold text-primary">
-                            {fee.amount ? formatCurrency(fee.amount) : "TBA"}
-                          </p>
+                      {/* Fee Items */}
+                      {fee.fee_items && fee.fee_items.length > 0 && (
+                        <div className="space-y-2">
+                          {fee.fee_items.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                              <div className="flex items-center gap-2">
+                                <Badge variant={getCategoryColor(item.category)} className="text-xs">
+                                  {item.label}
+                                </Badge>
+                              </div>
+                              <span className="font-semibold text-sm">
+                                {formatCurrency(item.amount)}
+                              </span>
+                            </div>
+                          ))}
+                          {/* Total Amount */}
+                          <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border-2 border-primary/20 mt-3">
+                            <IndianRupee className="h-5 w-5 text-primary" />
+                            <div className="flex-1">
+                              <span className="text-sm font-medium text-muted-foreground">Total Amount</span>
+                              <p className="text-xl font-bold text-primary">
+                                {fee.total_amount ? formatCurrency(fee.total_amount) : formatCurrency(
+                                  fee.fee_items.reduce((sum, item) => sum + item.amount, 0)
+                                )}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Details */}
                       <div className="space-y-2">
@@ -246,7 +269,132 @@ const FeesPage = () => {
           )}
         </div>
       </section>
-      
+
+      {/* Policies & Information Section */}
+      <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <h2 className="text-3xl font-bold text-center mb-12">Policies & Information</h2>
+
+          <div className="grid gap-8">
+            {/* Terms and Conditions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <FileText className="h-6 w-6" />
+                  Terms and Conditions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Admission Terms</h3>
+                  <ul className="space-y-2 text-muted-foreground">
+                    <li className="text-justify">• All admissions are subject to verification of documents and eligibility criteria</li>
+                    <li className="text-justify">• Students must maintain minimum attendance of 75% as per university regulations</li>
+                    <li className="text-justify">• Academic performance standards must be maintained throughout the program</li>
+                    <li className="text-justify">• Disciplinary actions may result in suspension or expulsion from the university</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">General Terms</h3>
+                  <ul className="space-y-2 text-muted-foreground">
+                    <li className="text-justify">• All fees must be paid within the stipulated time frame</li>
+                    <li className="text-justify">• The university reserves the right to modify fee structure and policies</li>
+                    <li className="text-justify">• Students are responsible for their personal belongings on campus</li>
+                    <li className="text-justify">• Compliance with all university rules and regulations is mandatory</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Privacy Policy */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <Shield className="h-6 w-6" />
+                  Privacy Policy
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Information Collection</h3>
+                  <p className="text-muted-foreground text-justify">
+                    We collect personal information including name, contact details, academic records, and financial information necessary for admission and academic purposes. This information is used solely for educational administration and student services.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Data Security</h3>
+                  <p className="text-muted-foreground text-justify">
+                    We implement robust security measures to protect your personal information from unauthorized access, alteration, disclosure, or destruction. All data is stored securely and access is limited to authorized personnel only.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Information Usage</h3>
+                  <p className="text-muted-foreground text-justify">
+                    Your information is used for admission processing, academic record maintenance, communication regarding university matters, and providing student services. We do not sell or share personal information with third parties without consent.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Your Rights</h3>
+                  <p className="text-muted-foreground text-justify">
+                    You have the right to access, update, or request deletion of your personal information. Contact our data protection officer for any privacy-related concerns or requests.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Return and Refund Policy */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <RefreshCw className="h-6 w-6" />
+                  Return and Refund Policy
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Fee Refund Conditions</h3>
+                  <ul className="space-y-2 text-muted-foreground">
+                    <li className="text-justify">
+                      <strong>Before Course Commencement:</strong> 90% refund if withdrawal is made 30 days before course start
+                    </li>
+                    <li className="text-justify">
+                      <strong>Within First Week:</strong> 75% refund if withdrawal is made within first week of classes
+                    </li>
+                    <li className="text-justify">
+                      <strong>Within First Month:</strong> 50% refund if withdrawal is made within first month
+                    </li>
+                    <li className="text-justify">
+                      <strong>After One Month:</strong> No refund applicable after completion of one month
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Refund Process</h3>
+                  <ul className="space-y-2 text-muted-foreground">
+                    <li className="text-justify">• Written application must be submitted to the Accounts Department</li>
+                    <li className="text-justify">• Original fee receipts and required documents must be provided</li>
+                    <li className="text-justify">• Processing time: 15-30 working days from application date</li>
+                    <li className="text-justify">• Refunds will be processed to the original payment method</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Non-Refundable Fees</h3>
+                  <p className="text-muted-foreground text-justify">
+                    Application fees, examination fees, and hostel security deposits are non-refundable under any circumstances.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );

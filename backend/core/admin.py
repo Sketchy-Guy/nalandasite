@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
     Department, HeroImage, Notice, Magazine, Club, CampusEvent,
-    AcademicService, Topper, CreativeWork, StudentSubmission, Timetable
+    AcademicService, Topper, CreativeWork, StudentSubmission, Timetable,
+    FeesStructure
 )
 
 @admin.register(Department)
@@ -150,5 +151,36 @@ class TimetableAdmin(admin.ModelAdmin):
         ('Advanced', {
             'fields': ('schedule_data',),
             'classes': ('collapse',)
+        })
+    )
+
+
+@admin.register(FeesStructure)
+class FeesStructureAdmin(admin.ModelAdmin):
+    list_display = ['title', 'academic_year', 'semester', 'get_total_amount', 'due_date', 'is_active', 'created_at']
+    list_filter = ['academic_year', 'semester', 'is_active', 'created_at']
+    search_fields = ['title', 'description', 'department']
+    ordering = ['-created_at']
+    
+    def get_total_amount(self, obj):
+        return f"₹{obj.total_amount:,.2f}"
+    get_total_amount.short_description = 'Total Amount'
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('title', 'description')
+        }),
+        ('Academic Details', {
+            'fields': ('academic_year', 'semester', 'department')
+        }),
+        ('Fee Items', {
+            'fields': ('fee_items',),
+            'description': 'Add fee items as JSON: [{"category": "tuition", "label": "Tuition Fees", "amount": 120000}]'
+        }),
+        ('Payment Information', {
+            'fields': ('due_date',)
+        }),
+        ('Display Settings', {
+            'fields': ('is_active',)
         })
     )

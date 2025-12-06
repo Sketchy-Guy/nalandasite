@@ -114,11 +114,11 @@ const Footer = () => {
                   key={name}
                   variant="outline"
                   size="sm"
-                  className="w-9 h-9 p-0"
+                  className="w-10 h-10 p-0"
                   asChild
                 >
                   <a href={href} target="_blank" rel="noopener noreferrer">
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-5 h-5" />
                     <span className="sr-only">{name}</span>
                   </a>
                 </Button>
@@ -239,9 +239,22 @@ const Footer = () => {
       <div className="border-t bg-muted/30">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <p className="text-sm text-muted-foreground text-center md:text-left">
-              © 2024 Nalanda Institute of Technology. All rights reserved.
-            </p>
+            <div className="flex flex-col items-center md:items-start space-y-1">
+              <p className="text-sm text-muted-foreground text-center md:text-left">
+                © 2024 Nalanda Institute of Technology. All rights reserved.
+              </p>
+              <p className="text-xs text-muted-foreground text-center md:text-left">
+                Designed and Managed by{' '}
+                <a
+                  href="https://www.logisaar.in/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline font-medium"
+                >
+                  LogiSaar
+                </a>
+              </p>
+            </div>
             <div className="flex space-x-4 text-sm">
               <Link to="/privacy" className="text-muted-foreground hover:text-primary transition-smooth">
                 Privacy Policy

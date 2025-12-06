@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import (
     Program, Trade, Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club, CampusEvent,
-    AcademicService, Topper, CreativeWork, StudentSubmission, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable
+    AcademicService, Topper, CreativeWork, StudentSubmission, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable,
+    FeesStructure
 )
 
 class ProgramSerializer(serializers.ModelSerializer):
@@ -296,3 +297,28 @@ class TimetableSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.timetable_image.url)
         return None
+
+
+class FeesStructureSerializer(serializers.ModelSerializer):
+    total_amount = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = FeesStructure
+        fields = '__all__'
+    
+    def validate_fee_items(self, value):
+        """Validate fee_items structure"""
+        if not isinstance(value, list):
+            raise serializers.ValidationError("fee_items must be a list")
+        
+        for item in value:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError("Each fee item must be an object")
+            
+            if 'category' not in item or 'label' not in item or 'amount' not in item:
+                raise serializers.ValidationError("Each fee item must have category, label, and amount")
+            
+            if not isinstance(item['amount'], (int, float)) or item['amount'] < 0:
+                raise serializers.ValidationError("Amount must be a positive number")
+        
+        return value

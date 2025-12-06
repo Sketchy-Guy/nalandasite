@@ -816,3 +816,49 @@ class Timetable(BaseModel):
 
     class Meta:
         ordering = ['display_order', '-created_at']
+
+
+class FeesStructure(BaseModel):
+    """Fees structure and payment information with multiple fee items"""
+    
+    # Category choices for frontend dropdowns and validation
+    CATEGORY_CHOICES = [
+        ('tuition', 'Tuition Fees'),
+        ('hostel', 'Hostel Fees'),
+        ('examination', 'Examination Fees'),
+        ('library', 'Library Fees'),
+        ('development', 'Development Fees'),
+        ('registration', 'Registration Fees'),
+        ('other', 'Other Fees'),
+    ]
+    
+    title = models.CharField(max_length=200, help_text='e.g., "B.Tech Semester 1 Fees 2024-25"')
+    description = models.TextField(blank=True, null=True)
+    academic_year = models.CharField(max_length=20)
+    semester = models.CharField(max_length=10, blank=True, null=True)
+    department = models.CharField(max_length=200, blank=True, null=True)
+    due_date = models.DateField(blank=True, null=True)
+    
+    # JSON field to store multiple fee items
+    # Structure: [{"category": "tuition", "label": "Tuition Fees", "amount": 120000}, ...]
+    fee_items = models.JSONField(
+        default=list, 
+        blank=True,
+        help_text='List of fee items with category, label, and amount'
+    )
+
+    @property
+    def total_amount(self):
+        """Calculate total amount from all fee items"""
+        return sum(item.get('amount', 0) for item in self.fee_items if isinstance(item, dict))
+
+
+
+
+    def __str__(self):
+        return f"{self.title} - {self.academic_year}"
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Fees Structure'
+        verbose_name_plural = 'Fees Structures'

@@ -19,7 +19,7 @@
     /* Academic Blue - Professional University Blue */
     --primary: 218 100% 35%;
     --primary-foreground: 0 0% 98%;
-    
+
     /* Light Academic Blue */
     --secondary: 215 60% 95%;
     --secondary-foreground: 218 100% 35%;
@@ -41,11 +41,11 @@
     --academic-gold: 43 100% 45%;
     --academic-green: 142 76% 36%;
     --academic-navy: 213 95% 20%;
-    
+
     /* Gradients */
     --gradient-hero: linear-gradient(135deg, hsl(218 100% 35%) 0%, hsl(213 95% 20%) 100%);
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(213 15% 98%) 100%);
-    
+
     /* Shadows */
     --shadow-elegant: 0 10px 40px -10px hsl(218 100% 35% / 0.15);
     --shadow-card: 0 4px 20px -2px hsl(213 31% 9% / 0.08);
@@ -68,6 +68,13 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Chart Colors */
+    --chart-1: 218 100% 50%;
+    --chart-2: 142 76% 45%;
+    --chart-3: 280 60% 50%;
+    --chart-4: 43 100% 50%;
+    --chart-5: 0 70% 50%;
   }
 
   .dark {
@@ -84,7 +91,7 @@
     /* Accent Blue for Dark Mode */
     --primary: 213 95% 70%;
     --primary-foreground: 213 95% 4%;
-    
+
     --secondary: 213 95% 12%;
     --secondary-foreground: 213 95% 85%;
 
@@ -100,20 +107,27 @@
     --border: 213 95% 12%;
     --input: 213 95% 12%;
     --ring: 213 95% 70%;
-    
+
     /* Dark Mode Academic Colors */
     --academic-gold: 43 90% 55%;
     --academic-green: 142 65% 45%;
     --academic-navy: 213 95% 85%;
-    
+
     /* Dark Mode Gradients */
     --gradient-hero: linear-gradient(135deg, hsl(213 95% 15%) 0%, hsl(213 95% 8%) 100%);
     --gradient-card: linear-gradient(145deg, hsl(213 95% 6%) 0%, hsl(213 95% 8%) 100%);
-    
+
     /* Dark Mode Shadows */
     --shadow-elegant: 0 10px 40px -10px hsl(0 0% 0% / 0.3);
     --shadow-card: 0 4px 20px -2px hsl(0 0% 0% / 0.2);
     --shadow-header: 0 2px 20px -2px hsl(0 0% 0% / 0.15);
+
+    /* Chart Colors - Dark Mode */
+    --chart-1: 213 95% 60%;
+    --chart-2: 142 65% 55%;
+    --chart-3: 280 50% 60%;
+    --chart-4: 43 90% 60%;
+    --chart-5: 0 65% 60%;
   }
 }
 
@@ -125,75 +139,81 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
-  
+
   html {
     scroll-behavior: smooth;
   }
 }
 
 @layer components {
+
   /* Academic Hero Styles */
   .hero-gradient {
     background: var(--gradient-hero);
   }
-  
+
   .card-gradient {
     background: var(--gradient-card);
   }
-  
+
   /* Academic Shadows */
   .shadow-elegant {
     box-shadow: var(--shadow-elegant);
   }
-  
+
   .shadow-card {
     box-shadow: var(--shadow-card);
   }
-  
+
   .shadow-header {
     box-shadow: var(--shadow-header);
   }
-  
+
   /* Academic Typography */
   .heading-academic {
     @apply font-bold tracking-tight;
   }
-  
+
   /* Smooth Animations */
   .transition-smooth {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
+
   /* Academic Button Styles */
   .btn-academic {
     @apply inline-flex items-center justify-center rounded-lg px-6 py-3 text-sm font-semibold transition-smooth focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
   }
-  
+
   .btn-academic-primary {
     @apply btn-academic bg-primary text-primary-foreground hover:bg-primary/90 shadow-elegant;
   }
-  
+
   .btn-academic-secondary {
     @apply btn-academic bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border;
   }
 
   /* Topbar (login row) styles */
   .topbar {
-    background-color: hsl(218 100% 35% / 1); /* primary in light mode */
+    background-color: hsl(218 100% 35% / 1);
+    /* primary in light mode */
   }
 
   .dark .topbar {
-    background-color: hsl(213 95% 8% / 1); /* deeper background in dark mode to match dark theme */
+    background-color: hsl(213 95% 8% / 1);
+    /* deeper background in dark mode to match dark theme */
   }
 
   /* Hide scrollbar while keeping scroll functionality */
   .scrollbar-hide {
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    /* Internet Explorer 10+ */
+    scrollbar-width: none;
+    /* Firefox */
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
+    display: none;
+    /* Safari and Chrome */
   }
 }
 
@@ -203,6 +223,7 @@
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -214,6 +235,7 @@
     opacity: 0;
     transform: translateX(30px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -221,9 +243,12 @@
 }
 
 @keyframes gentleFloat {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -239,4 +264,42 @@
 
 .animate-gentle-float {
   animation: gentleFloat 3s ease-in-out infinite;
+}
+
+/* Glassmorphism Card Effect */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+}
+
+.dark .glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient Primary Background */
+.gradient-primary {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
+}
+
+/* Glow Effect */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.glow-primary:hover {
+  box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.2);
 }

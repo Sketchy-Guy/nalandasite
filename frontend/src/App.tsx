@@ -96,6 +96,8 @@ import Accreditation from "./pages/about/Accreditation";
 import NAAC from "./pages/about/NAAC";
 import NBA from "./pages/about/NBA";
 import SIRO from "./pages/about/SIRO";
+import PlacementReport from "./pages/training-placement/PlacementReport";
+import PlacementDepartment from "./pages/training-placement/PlacementDepartment";
 
 const queryClient = new QueryClient();
 
@@ -162,6 +164,10 @@ const App = () => (
 
               {/* Contact Page */}
               <Route path="/contact" element={<Contact />} />
+
+              {/* Training & Placement Pages */}
+              <Route path="/placement-department" element={<PlacementDepartment />} />
+              <Route path="/placement-report" element={<PlacementReport />} />
 
               {/* Student Dashboard */}
               <Route path="/student/dashboard" element={<StudentDashboard />} />

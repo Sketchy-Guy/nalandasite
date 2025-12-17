@@ -27,6 +27,7 @@ const NoticeBoard = () => {
   const [currentNotice, setCurrentNotice] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showAllNotices, setShowAllNotices] = useState(false);
+  const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
 
   useEffect(() => {
     fetchNotices();
@@ -35,31 +36,31 @@ const NoticeBoard = () => {
   const fetchNotices = async () => {
     try {
       // Fetch featured notices for carousel
-      const featuredResponse = await api.notices.list({ 
-        is_active: true, 
+      const featuredResponse = await api.notices.list({
+        is_active: true,
         is_featured: true,
         ordering: '-updated_at',  // Most recently updated first
         limit: 10
       });
-      
+
       // Fetch recent notices for sidebar (all active notices, newest first)
-      const recentResponse = await api.notices.list({ 
+      const recentResponse = await api.notices.list({
         is_active: true,
         ordering: '-updated_at',  // Most recently updated first
         limit: 8
       });
 
       // Fetch all notices for "View All" functionality
-      const allResponse = await api.notices.list({ 
+      const allResponse = await api.notices.list({
         is_active: true,
         ordering: '-updated_at',  // Most recently updated first
         limit: 50  // Get more notices for "View All"
       });
-      
+
       const featuredData = Array.isArray(featuredResponse) ? featuredResponse : (featuredResponse.results || []);
       const recentData = Array.isArray(recentResponse) ? recentResponse : (recentResponse.results || []);
       const allData = Array.isArray(allResponse) ? allResponse : (allResponse.results || []);
-      
+
       setFeaturedNotices(featuredData);
       setRecentNotices(recentData);
       setAllNotices(allData);
@@ -117,9 +118,7 @@ const NoticeBoard = () => {
   };
 
   const handleNoticeClick = (notice: Notice) => {
-    if (notice.link) {
-      window.open(notice.link, '_blank', 'noopener,noreferrer');
-    }
+    setSelectedNotice(notice);
   };
 
   if (loading) {
@@ -199,12 +198,14 @@ const NoticeBoard = () => {
                   </div>
                 </div>
 
+
                 <motion.div
                   key={currentNotice}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5 }}
-                  className="space-y-4"
+                  className="space-y-4 cursor-pointer"
+                  onClick={() => handleNoticeClick(featuredNotices[currentNotice])}
                 >
                   <h4 className="text-lg font-semibold text-foreground line-clamp-2">
                     {featuredNotices[currentNotice]?.title}
@@ -212,7 +213,7 @@ const NoticeBoard = () => {
                   <p className="text-muted-foreground line-clamp-3">
                     {featuredNotices[currentNotice]?.description}
                   </p>
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center text-sm text-muted-foreground">
@@ -223,20 +224,17 @@ const NoticeBoard = () => {
                         {featuredNotices[currentNotice]?.category}
                       </Badge>
                     </div>
-                    {featuredNotices[currentNotice]?.link ? (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleNoticeClick(featuredNotices[currentNotice])}
-                        className="hover:bg-primary hover:text-primary-foreground"
-                      >
-                        Open Link
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="outline" disabled>
-                        Text Only
-                      </Button>
-                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNoticeClick(featuredNotices[currentNotice]);
+                      }}
+                      className="hover:bg-primary hover:text-primary-foreground"
+                    >
+                      View Details
+                    </Button>
                   </div>
                 </motion.div>
 
@@ -250,19 +248,18 @@ const NoticeBoard = () => {
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    
+
                     <div className="flex space-x-1">
                       {featuredNotices.slice(0, 5).map((_, index) => (
                         <button
                           key={index}
-                          className={`w-2 h-2 rounded-full transition-all ${
-                            currentNotice === index ? 'bg-primary' : 'bg-muted'
-                          }`}
+                          className={`w-2 h-2 rounded-full transition-all ${currentNotice === index ? 'bg-primary' : 'bg-muted'
+                            }`}
                           onClick={() => setCurrentNotice(index)}
                         />
                       ))}
                     </div>
-                    
+
                     <Button
                       variant="ghost"
                       size="sm"
@@ -294,11 +291,7 @@ const NoticeBoard = () => {
                       whileInView={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: index * 0.1 }}
                       viewport={{ once: true }}
-                      className={`border-l-4 border-primary pl-4 py-2 transition-colors rounded-r-lg ${
-                        notice.link 
-                          ? 'hover:bg-muted/50 cursor-pointer hover:border-l-primary' 
-                          : 'hover:bg-muted/30'
-                      }`}
+                      className="border-l-4 border-primary pl-4 py-2 transition-colors rounded-r-lg hover:bg-muted/50 cursor-pointer hover:border-l-primary"
                       onClick={() => handleNoticeClick(notice)}
                     >
                       <div className="flex items-start justify-between">
@@ -334,9 +327,9 @@ const NoticeBoard = () => {
                     </motion.div>
                   ))}
                 </div>
-                
-                <Button 
-                  className="w-full mt-6" 
+
+                <Button
+                  className="w-full mt-6"
                   variant="outline"
                   onClick={() => setShowAllNotices(true)}
                 >
@@ -356,7 +349,7 @@ const NoticeBoard = () => {
               All Notices ({allNotices.length})
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="overflow-y-auto max-h-[60vh] space-y-4 pr-2">
             {allNotices.map((notice, index) => (
               <motion.div
@@ -364,11 +357,7 @@ const NoticeBoard = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
-                className={`border rounded-lg p-4 transition-colors ${
-                  notice.link 
-                    ? 'hover:bg-muted/50 cursor-pointer border-primary/20' 
-                    : 'hover:bg-muted/30 border-border'
-                }`}
+                className="border rounded-lg p-4 transition-colors hover:bg-muted/50 cursor-pointer border-primary/20"
                 onClick={() => handleNoticeClick(notice)}
               >
                 <div className="flex items-start justify-between">
@@ -393,11 +382,11 @@ const NoticeBoard = () => {
                         </Badge>
                       )}
                     </div>
-                    
+
                     <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
                       {notice.description}
                     </p>
-                    
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="flex items-center text-xs text-muted-foreground">
@@ -411,7 +400,7 @@ const NoticeBoard = () => {
                           {notice.priority}
                         </Badge>
                       </div>
-                      
+
                       {notice.link && (
                         <Button size="sm" variant="outline" className="text-xs">
                           Open Link
@@ -423,6 +412,89 @@ const NoticeBoard = () => {
               </motion.div>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notice Detail Dialog */}
+      <Dialog open={!!selectedNotice} onOpenChange={() => setSelectedNotice(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-primary" />
+              Notice Details
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedNotice && (
+            <div className="space-y-4">
+              {/* Title and Badges */}
+              <div>
+                <div className="flex items-start gap-2 mb-3">
+                  <h3 className="text-xl font-semibold text-foreground flex-1">
+                    {selectedNotice.title}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedNotice.is_featured && (
+                      <Badge className="bg-yellow-500 text-white">
+                        ⭐ Featured
+                      </Badge>
+                    )}
+                    {selectedNotice.is_new && (
+                      <Badge className="bg-red-500 text-white">
+                        NEW
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Meta Information */}
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <div className="flex items-center text-muted-foreground">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    {formatDate(selectedNotice.created_at)}
+                  </div>
+                  <Badge variant="outline" className={getCategoryColor(selectedNotice.category)}>
+                    {selectedNotice.category}
+                  </Badge>
+                  <Badge className={getPriorityColor(selectedNotice.priority)}>
+                    {selectedNotice.priority} Priority
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="border-t pt-4">
+                <h4 className="font-semibold text-foreground mb-2">Description</h4>
+                <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {selectedNotice.description}
+                </p>
+              </div>
+
+              {/* Link Action */}
+              {selectedNotice.link && (
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-primary" />
+                      <span className="text-sm font-medium">This notice has an external link</span>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        window.open(selectedNotice.link, '_blank', 'noopener,noreferrer');
+                        setSelectedNotice(null);
+                      }}
+                      className="gap-2"
+                    >
+                      Open Link
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </section>

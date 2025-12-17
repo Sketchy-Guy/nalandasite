@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { motion } from "framer-motion";
 import { Menu, X, Search, User, CreditCard, ChevronDown, LogOut, ChevronRight } from "lucide-react";
@@ -31,8 +31,42 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [openMobileSection, setOpenMobileSection] = useState<string | null>(null);
+  const [showTopbar, setShowTopbar] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [topbarHeight, setTopbarHeight] = useState(0);
+  const topbarRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
   const { user, signOut, isAdmin } = useAuth();
+
+  // Measure topbar height
+  useEffect(() => {
+    if (topbarRef.current) {
+      setTopbarHeight(topbarRef.current.offsetHeight);
+    }
+  }, []);
+
+  // Scroll detection for topbar visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY < 10) {
+        // Always show topbar at the very top
+        setShowTopbar(true);
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up - show topbar
+        setShowTopbar(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        // Scrolling down - hide topbar (only after scrolling past 50px)
+        setShowTopbar(false);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   const academicsSubMenu = [
     { title: "Toppers", href: "/academics/toppers" },
@@ -148,6 +182,11 @@ const Header = () => {
     { title: "College Dues", href: "/fees/dues" }
   ];
 
+  const trainingPlacementSubMenu = [
+    { title: "Placement Department", href: "/placement-department" },
+    { title: "Placement Report", href: "/placement-report" }
+  ];
+
   const contactUsSubMenu = [
     { title: "Contact Information", href: "/contact" },
     { title: "Office Locations", href: "/contact/locations" },
@@ -170,7 +209,18 @@ const Header = () => {
   return (
     <>
       {/* Top Login Bar (Fees moved right next to login) */}
-      <div className="topbar text-white py-2 px-2 sm:px-4">
+      <motion.div
+        ref={topbarRef}
+        className="topbar text-white py-2 px-2 sm:px-4"
+        initial={{ y: 0 }}
+        animate={{ y: showTopbar ? 0 : -100 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 50
+        }}
+      >
         <div className="container mx-auto flex justify-between items-center">
           {/* Left side: New Logo */}
           <div className="hidden sm:flex items-center">
@@ -270,16 +320,20 @@ const Header = () => {
             </Button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Main Header */}
       <motion.header
-        className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-header"
+        className="sticky z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-header"
+        style={{
+          top: showTopbar ? `${topbarHeight}px` : '0',
+          transition: 'top 0.3s ease-in-out'
+        }}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <div className="container mx-auto px-2 sm:px-4 flex h-14 sm:h-16 items-center justify-between gap-2 sm:gap-4">
+        <div className="container mx-auto px-2 sm:px-4 md:px-6 flex h-14 sm:h-16 items-center justify-between gap-1 sm:gap-2 md:gap-4 max-w-full">
           {/* Logo */}
           <motion.div
             className="flex items-center space-x-3 min-w-0 flex-1 md:flex-none"
@@ -313,21 +367,21 @@ const Header = () => {
           </motion.div>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
+          <div className="hidden lg:flex items-center gap-0.5 flex-1 justify-center">
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuLink
                     href="/"
-                    className="px-3 py-2 text-sm font-medium hover:text-primary transition-colors"
+                    className="px-2 py-2 text-xs font-medium hover:text-primary transition-colors"
                   >
                     Home
                   </NavigationMenuLink>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm">Academics</NavigationMenuTrigger>
-                  <NavigationMenuContent className="z-50">
+                  <NavigationMenuTrigger className="text-xs">Academics</NavigationMenuTrigger>
+                  <NavigationMenuContent className="z-[100]">
                     <div className="w-80 p-4 bg-popover border border-border shadow-lg rounded-xl">
                       <div className="grid gap-2">
                         {academicsSubMenu.map((item) => (
@@ -345,8 +399,8 @@ const Header = () => {
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm">Campus Life</NavigationMenuTrigger>
-                  <NavigationMenuContent className="z-50">
+                  <NavigationMenuTrigger className="text-xs">Campus Life</NavigationMenuTrigger>
+                  <NavigationMenuContent className="z-[100]">
                     <div className="w-80 p-4 bg-popover border border-border shadow-lg rounded-xl max-h-96 overflow-y-auto scrollbar-hide">
                       <div className="grid gap-2">
                         {campusLifeSubMenu.map((item) => (
@@ -364,8 +418,8 @@ const Header = () => {
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm">About Us</NavigationMenuTrigger>
-                  <NavigationMenuContent className="z-50">
+                  <NavigationMenuTrigger className="text-xs">About Us</NavigationMenuTrigger>
+                  <NavigationMenuContent className="z-[100]">
                     <div className="w-80 p-4 bg-popover border border-border shadow-lg rounded-xl">
                       <div className="grid gap-2">
                         {aboutUsSubMenu.map((item) => (
@@ -398,8 +452,36 @@ const Header = () => {
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm">Departments</NavigationMenuTrigger>
-                  <NavigationMenuContent className="z-50">
+                  <NavigationMenuTrigger className="text-xs">Training & Placement</NavigationMenuTrigger>
+                  <NavigationMenuContent className="z-[100]">
+                    <div className="w-80 p-4 bg-popover border border-border shadow-lg rounded-xl">
+                      <div className="grid gap-2">
+                        {trainingPlacementSubMenu.map((item) => (
+                          <NavigationMenuLink
+                            key={item.title}
+                            href={item.href}
+                            className="block px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
+                          >
+                            {item.title}
+                          </NavigationMenuLink>
+                        ))}
+                      </div>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    href="/research"
+                    className="px-2 py-2 text-xs font-medium hover:text-primary transition-colors"
+                  >
+                    Research
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="text-xs">Departments</NavigationMenuTrigger>
+                  <NavigationMenuContent className="z-[100]">
                     {departmentHierarchy.length > 0 ? (
                       <HierarchicalDepartmentMenu hierarchy={departmentHierarchy} />
                     ) : (
@@ -423,7 +505,7 @@ const Header = () => {
                 <NavigationMenuItem>
                   <NavigationMenuLink
                     href="/contact"
-                    className="px-3 py-2 text-sm font-medium hover:text-primary transition-colors flex items-center whitespace-nowrap"
+                    className="px-2 py-2 text-xs font-medium hover:text-primary transition-colors flex items-center whitespace-nowrap"
                   >
                     Contact Us
                   </NavigationMenuLink>
@@ -433,23 +515,17 @@ const Header = () => {
           </div>
 
           {/* Search and Mobile Menu Toggle (theme moved to top bar) */}
-          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-            <div className="hidden xl:flex items-center space-x-2">
-              <Input
-                type="search"
-                placeholder="Search..."
-                className="w-32 lg:w-48"
-              />
-              <Button size="icon" variant="ghost">
-                <Search className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+            {/* Desktop Search Button */}
+            <Button size="icon" variant="ghost" className="hidden xl:flex">
+              <Search className="h-4 w-4" />
+            </Button>
 
             {/* Mobile Search Button */}
             <Button
               variant="ghost"
               size="sm"
-              className="xl:hidden flex-shrink-0 p-1 sm:p-2"
+              className="xl:hidden flex-shrink-0 p-0.5 sm:p-1"
             >
               <Search className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
@@ -458,7 +534,7 @@ const Header = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden flex-shrink-0 p-1 sm:p-2"
+              className="lg:hidden flex-shrink-0 p-0.5 sm:p-1"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <X className="h-4 w-4 sm:h-5 sm:w-5" /> : <Menu className="h-4 w-4 sm:h-5 sm:w-5" />}
@@ -538,6 +614,38 @@ const Header = () => {
                     ))}
                   </motion.div>
                 )}
+              </div>
+
+              {/* Training & Placement Section */}
+              <div className="border-b border-border/50">
+                <button
+                  onClick={() => toggleMobileSection('training')}
+                  className="w-full flex items-center justify-between py-2 text-sm font-medium hover:text-primary transition-colors"
+                >
+                  Training & Placement
+                  <ChevronRight className={`h-4 w-4 transition-transform ${openMobileSection === 'training' ? 'rotate-90' : ''}`} />
+                </button>
+                {openMobileSection === 'training' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="ml-4 pb-2 space-y-1"
+                  >
+                    {trainingPlacementSubMenu.map((item) => (
+                      <a key={item.title} href={item.href} className="block py-1 text-sm text-muted-foreground hover:text-foreground">
+                        {item.title}
+                      </a>
+                    ))}
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Research Section */}
+              <div className="border-b border-border/50">
+                <a href="/research" className="block py-2 text-sm font-medium hover:text-primary transition-colors">
+                  Research
+                </a>
               </div>
 
               {/* Departments Section */}

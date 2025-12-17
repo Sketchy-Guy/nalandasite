@@ -218,7 +218,7 @@ export default function PlacementReport() {
                             >
                                 <span className="text-foreground">Nalanda Institute of Technology</span>
                                 <br />
-                                <span className="gradient-text">Placement Brochure</span>
+                                <span className="gradient-text">Placement Report</span>
                             </motion.h1>
 
                             {/* Subtitle */}

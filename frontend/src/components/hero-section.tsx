@@ -27,18 +27,14 @@ const HeroSection = () => {
 
   const fetchHeroImages = async () => {
     try {
-      const response = await api.heroImages.list({ 
-        is_active: true, 
+      const response = await api.heroImages.list({
+        is_active: true,
         ordering: 'display_order',
         _t: Date.now() // Cache busting
       });
-      
+
       const data = Array.isArray(response) ? response : (response.results || []);
-      
-      // Debug: Log the received data
-      console.log('Hero Section - Received data:', data);
-      console.log('Hero Section - Active images only:', data.filter(img => img.is_active));
-      
+
       // If no images in database, use default images
       if (!data || data.length === 0) {
         setHeroImages([
@@ -114,13 +110,13 @@ const HeroSection = () => {
             key={image.id}
             className="absolute inset-0"
             initial={{ opacity: 0 }}
-            animate={{ 
+            animate={{
               opacity: currentSlide === index ? 1 : 0,
-              scale: currentSlide === index ? 1 : 1.1 
+              scale: currentSlide === index ? 1 : 1.1
             }}
             transition={{ duration: 0.8 }}
           >
-            <div 
+            <div
               className="w-full h-full bg-cover bg-center bg-no-repeat"
               style={{ backgroundImage: `url(${image.image_url})` }}
             >
@@ -190,9 +186,8 @@ const HeroSection = () => {
             {heroImages.map((_, index) => (
               <button
                 key={index}
-                className={`w-3 h-3 rounded-full transition-all ${
-                  currentSlide === index ? 'bg-white' : 'bg-white/50'
-                }`}
+                className={`w-3 h-3 rounded-full transition-all ${currentSlide === index ? 'bg-white' : 'bg-white/50'
+                  }`}
                 onClick={() => setCurrentSlide(index)}
               />
             ))}

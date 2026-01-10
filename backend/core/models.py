@@ -338,18 +338,69 @@ class CampusEvent(BaseModel):
         verbose_name = 'Campus Event'
         verbose_name_plural = 'Campus Events'
 
+def academic_service_upload_path(instance, filename):
+    """Generate upload path for academic service files"""
+    return f'academic_services/{filename}'
+
 class AcademicService(BaseModel):
-    """Academic services and links"""
-    name = models.CharField(max_length=200)
+    """Academic downloads and documents"""
+    title = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
-    icon = models.CharField(max_length=100)  # Icon name for frontend
-    link_url = models.URLField(blank=True, null=True)
+    category = models.CharField(max_length=100)
+    department = models.CharField(max_length=200, blank=True, null=True)
+    
+    # File uploads
+    file = models.FileField(upload_to=academic_service_upload_path, blank=True, null=True)
+    file_url = models.URLField(blank=True, null=True, help_text="Local file URL (auto-generated)")
+    
+    # Google Drive link
+    drive_url = models.URLField(blank=True, null=True, help_text="Google Drive link for documents")
+    
+    # File metadata
+    file_type = models.CharField(max_length=50, blank=True, null=True)
+    file_size = models.BigIntegerField(blank=True, null=True, help_text="File size in bytes")
+    download_count = models.IntegerField(default=0)
 
     def __str__(self):
-        return self.name
+        return self.title
+    
+    def save(self, *args, **kwargs):
+        """Override save to set file metadata and delete old files"""
+        # Delete old file if replacing (must be done before save)
+        if self.pk:
+            try:
+                old_instance = AcademicService.objects.get(pk=self.pk)
+                if old_instance.file and old_instance.file != self.file:
+                    if old_instance.file.storage.exists(old_instance.file.name):
+                        old_instance.file.storage.delete(old_instance.file.name)
+            except AcademicService.DoesNotExist:
+                pass
+        
+        # Set file metadata before saving
+        if self.file:
+            self.file_size = self.file.size
+            self.file_type = self.file.name.split('.')[-1].upper() if '.' in self.file.name else 'FILE'
+        
+        # Save the instance (only once!)
+        super().save(*args, **kwargs)
+        
+        # Update file_url after save (if needed)
+        if self.file and not self.file_url:
+            self.file_url = self.file.url
+            # Use update to avoid triggering save again
+            AcademicService.objects.filter(pk=self.pk).update(file_url=self.file_url)
+    
+    def delete(self, *args, **kwargs):
+        """Override delete to remove file from storage"""
+        if self.file:
+            if self.file.storage.exists(self.file.name):
+                self.file.storage.delete(self.file.name)
+        super().delete(*args, **kwargs)
 
     class Meta:
-        ordering = ['name']
+        ordering = ['-created_at']
+        verbose_name = 'Academic Download'
+        verbose_name_plural = 'Academic Downloads'
 
 class Topper(BaseModel):
     """Academic toppers"""
@@ -480,6 +531,140 @@ class CreativeWork(BaseModel):
 
     class Meta:
         ordering = ['-created_at']
+
+
+def hostel_image_upload_path(instance, filename):
+    """Generate upload path for hostel images"""
+    return f'hostel_images/{instance.hostel.id}/{filename}'
+
+class Hostel(BaseModel):
+    """Hostel accommodation information"""
+    HOSTEL_TYPE_CHOICES = [
+        ('boys', 'Boys Hostel'),
+        ('girls', 'Girls Hostel'),
+        ('mixed', 'Mixed/Co-ed'),
+    ]
+    
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    hostel_type = models.CharField(max_length=20, choices=HOSTEL_TYPE_CHOICES)
+    capacity = models.IntegerField(help_text="Total capacity")
+    rooms_available = models.IntegerField(help_text="Number of available rooms")
+    facilities = models.JSONField(default=list, blank=True, help_text="List of facilities")
+    rules = models.TextField(blank=True, null=True, help_text="Rules and regulations")
+    warden_name = models.CharField(max_length=200, blank=True, null=True)
+    warden_contact = models.CharField(max_length=200, blank=True, null=True)
+    
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Hostel'
+        verbose_name_plural = 'Hostels'
+
+class HostelImage(models.Model):
+    """Images for hostels (max 4 per hostel)"""
+    hostel = models.ForeignKey(Hostel, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to=hostel_image_upload_path)
+    display_order = models.IntegerField(default=1, help_text="Display order (1-4)")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.hostel.name} - Image {self.display_order}"
+    
+    def delete(self, *args, **kwargs):
+        """Override delete to remove image from storage"""
+        if self.image:
+            if self.image.storage.exists(self.image.name):
+                self.image.storage.delete(self.image.name)
+        super().delete(*args, **kwargs)
+    
+    def save(self, *args, **kwargs):
+        """Override save to delete old image when replacing"""
+        if self.pk:
+            try:
+                old_instance = HostelImage.objects.get(pk=self.pk)
+                if old_instance.image and old_instance.image != self.image:
+                    if old_instance.image.storage.exists(old_instance.image.name):
+                        old_instance.image.storage.delete(old_instance.image.name)
+            except HostelImage.DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
+    
+    class Meta:
+        ordering = ['display_order', 'created_at']
+        unique_together = [['hostel', 'display_order']]
+        verbose_name = 'Hostel Image'
+        verbose_name_plural = 'Hostel Images'
+
+
+class SportsFacility(BaseModel):
+    """Sports facilities and equipment"""
+    FACILITY_TYPE_CHOICES = [
+        ('outdoor', 'Outdoor'),
+        ('indoor', 'Indoor'),
+        ('gym', 'Gym'),
+        ('fitness', 'Fitness'),
+        ('court', 'Court'),
+        ('field', 'Field'),
+    ]
+    
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    image_url = models.URLField(blank=True, null=True, help_text="External image URL")
+    facility_type = models.CharField(max_length=20, choices=FACILITY_TYPE_CHOICES, default='outdoor')
+    capacity = models.IntegerField(blank=True, null=True, help_text="Number of people")
+    operating_hours = models.CharField(max_length=200, blank=True, null=True, help_text="e.g., 6:00 AM - 10:00 PM")
+    booking_required = models.BooleanField(default=False)
+    contact_person = models.CharField(max_length=200, blank=True, null=True)
+    contact_email = models.EmailField(blank=True, null=True)
+    
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Sports Facility'
+        verbose_name_plural = 'Sports Facilities'
+
+
+def sports_facility_image_upload_path(instance, filename):
+    """Generate upload path for sports facility images"""
+    return f'sports_images/{instance.facility.id}/{filename}'
+
+
+class SportsFacilityImage(models.Model):
+    """Images for sports facilities"""
+    facility = models.ForeignKey(SportsFacility, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to=sports_facility_image_upload_path)
+    display_order = models.IntegerField(default=1, help_text="Order of image display (1-4)")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def delete(self, *args, **kwargs):
+        # Delete the file when the model instance is deleted
+        if self.image:
+            if os.path.isfile(self.image.path):
+                os.remove(self.image.path)
+        super().delete(*args, **kwargs)
+    
+    def save(self, *args, **kwargs):
+        # Delete old file if updating
+        if self.pk:
+            try:
+                old_instance = SportsFacilityImage.objects.get(pk=self.pk)
+                if old_instance.image and old_instance.image != self.image:
+                    if os.path.isfile(old_instance.image.path):
+                        old_instance.image.storage.delete(old_instance.image.name)
+            except SportsFacilityImage.DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
+    
+    class Meta:
+        ordering = ['display_order', 'created_at']
+        unique_together = [['facility', 'display_order']]
+        verbose_name = 'Sports Facility Image'
+        verbose_name_plural = 'Sports Facility Images'
 
 
 class StudentSubmission(BaseModel):
@@ -862,3 +1047,119 @@ class FeesStructure(BaseModel):
         ordering = ['-created_at']
         verbose_name = 'Fees Structure'
         verbose_name_plural = 'Fees Structures'
+
+
+class Scholarship(BaseModel):
+    """Scholarship programs and financial assistance"""
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    eligibility_criteria = models.TextField(blank=True, null=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, help_text="Scholarship amount in INR")
+    application_deadline = models.DateField(blank=True, null=True)
+    application_url = models.URLField(blank=True, null=True, help_text="External application URL")
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Scholarship'
+        verbose_name_plural = 'Scholarships'
+
+
+class TranscriptService(BaseModel):
+    """Academic transcript and document services"""
+    service_name = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    processing_time = models.CharField(max_length=100, blank=True, null=True, help_text="e.g., 3-5 working days")
+    required_documents = models.JSONField(default=list, blank=True, help_text="List of required documents")
+    fees_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, help_text="Service fee in INR")
+    contact_email = models.EmailField(blank=True, null=True)
+    is_online = models.BooleanField(default=False, help_text="Online service available")
+
+    def __str__(self):
+        return self.service_name
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Transcript Service'
+        verbose_name_plural = 'Transcript Services'
+
+
+class AdminRole(models.Model):
+    """Granular admin permissions - controls which admin panels a user can access"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='admin_role')
+    role_level = models.IntegerField(
+        choices=[
+            (1, 'Super Admin'),
+            (2, 'Admin'),
+            (3, 'Moderator'),
+        ],
+        default=2,
+        help_text="1=Super Admin (full access), 2=Admin (custom access), 3=Moderator (limited access)"
+    )
+    allowed_pages = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of admin page slugs this user can access, e.g., ['transcripts', 'scholarships']"
+    )
+    granted_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        related_name='granted_roles',
+        help_text="Superadmin who granted this role"
+    )
+    granted_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True, help_text="Optional expiry date for temporary roles")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_role_level_display()}"
+
+    @property
+    def is_superadmin(self):
+        return self.role_level == 1
+
+    @property
+    def has_full_access(self):
+        """Super admins have access to everything"""
+        return self.role_level == 1
+
+    def has_page_access(self, page_slug):
+        """Check if user has access to a specific admin page"""
+        if self.has_full_access:
+            return True
+        return page_slug in self.allowed_pages
+
+    class Meta:
+        ordering = ['role_level', '-created_at']
+        verbose_name = 'Admin Role'
+        verbose_name_plural = 'Admin Roles'
+
+
+class AdminActivityLog(models.Model):
+    """Audit trail for admin actions"""
+    admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name='admin_activities')
+    action = models.CharField(max_length=100, help_text="e.g., 'create', 'update', 'delete', 'grant_role'")
+    resource_type = models.CharField(max_length=100, help_text="e.g., 'scholarship', 'transcript', 'admin_role'")
+    resource_id = models.CharField(max_length=255, null=True, blank=True)
+    details = models.JSONField(default=dict, blank=True, help_text="Additional context about the action")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.admin.username} - {self.action} {self.resource_type} at {self.created_at}"
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Admin Activity Log'
+        verbose_name_plural = 'Admin Activity Logs'
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['admin', '-created_at']),
+            models.Index(fields=['resource_type', '-created_at']),
+        ]

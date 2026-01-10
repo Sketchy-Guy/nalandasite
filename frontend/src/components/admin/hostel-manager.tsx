@@ -13,23 +13,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { 
-  Home, 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  Search, 
+import { api } from '@/lib/api';
+import {
+  Home,
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
   Filter,
   Users,
   User,
-  Phone,
-  Mail,
-  DollarSign,
-  Shield,
   Bed,
-  Building
+  Building,
+  X,
+  Upload,
+  Image as ImageIcon
 } from 'lucide-react';
+
+interface HostelImage {
+  id: string;
+  image: string;
+  image_url: string;
+  display_order: number;
+}
 
 interface HostelInfo {
   id: string;
@@ -40,10 +46,9 @@ interface HostelInfo {
   rooms_available: number;
   facilities: string[];
   rules?: string;
-  fee_structure?: any;
   warden_name?: string;
   warden_contact?: string;
-  image_url?: string;
+  images: HostelImage[];
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -67,17 +72,17 @@ const HostelManager = () => {
     rooms_available: '',
     facilities: [] as string[],
     rules: '',
-    fee_structure: '',
     warden_name: '',
     warden_contact: '',
-    image_url: '',
     is_active: true
   });
 
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [facilityInput, setFacilityInput] = useState('');
 
   const commonFacilities = [
-    'Wi-Fi', 'Mess/Dining Hall', 'Common Room', 'Study Hall', 'Laundry', 
+    'Wi-Fi', 'Mess/Dining Hall', 'Common Room', 'Study Hall', 'Laundry',
     'Security', 'Parking', 'Medical Facility', 'Gym', 'Library',
     'Recreation Room', 'Water Cooler', 'Backup Power', 'CCTV'
   ];
@@ -92,13 +97,9 @@ const HostelManager = () => {
 
   const fetchHostels = async () => {
     try {
-      const { data, error } = await supabase
-        .from('hostel_info')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setHostels(data || []);
+      const response = await api.hostels.list({ ordering: '-created_at' });
+      const data = Array.isArray(response) ? response : (response.results || []);
+      setHostels(data);
     } catch (error) {
       console.error('Error fetching hostels:', error);
       toast({
@@ -128,6 +129,36 @@ const HostelManager = () => {
     setFilteredHostels(filtered);
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const maxImages = 4;
+
+    if (files.length + selectedImages.length > maxImages) {
+      toast({
+        title: "Too many images",
+        description: `You can only upload up to ${maxImages} images`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSelectedImages(prev => [...prev, ...files].slice(0, maxImages));
+
+    // Create previews
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews(prev => [...prev, reader.result as string].slice(0, maxImages));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -137,12 +168,12 @@ const HostelManager = () => {
       rooms_available: '',
       facilities: [],
       rules: '',
-      fee_structure: '',
       warden_name: '',
       warden_contact: '',
-      image_url: '',
       is_active: true
     });
+    setSelectedImages([]);
+    setImagePreviews([]);
     setFacilityInput('');
     setEditingHostel(null);
   };
@@ -168,32 +199,33 @@ const HostelManager = () => {
     e.preventDefault();
 
     try {
-      const hostelData = {
-        ...formData,
-        capacity: parseInt(formData.capacity) || 0,
-        rooms_available: parseInt(formData.rooms_available) || 0,
-        fee_structure: formData.fee_structure ? JSON.parse(formData.fee_structure) : null
-      };
+      const formDataToSend = new FormData();
+
+      // Add basic fields
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('hostel_type', formData.hostel_type);
+      formDataToSend.append('capacity', formData.capacity);
+      formDataToSend.append('rooms_available', formData.rooms_available);
+      formDataToSend.append('facilities', JSON.stringify(formData.facilities));
+      formDataToSend.append('rules', formData.rules);
+      formDataToSend.append('warden_name', formData.warden_name);
+      formDataToSend.append('warden_contact', formData.warden_contact);
+      formDataToSend.append('is_active', String(formData.is_active));
+
+      // Add images
+      selectedImages.forEach((image, index) => {
+        formDataToSend.append('uploaded_images', image);
+      });
 
       if (editingHostel) {
-        const { error } = await supabase
-          .from('hostel_info')
-          .update(hostelData)
-          .eq('id', editingHostel.id);
-
-        if (error) throw error;
-
+        await api.hostels.update(editingHostel.id, formDataToSend);
         toast({
           title: "Success",
           description: "Hostel information updated successfully"
         });
       } else {
-        const { error } = await supabase
-          .from('hostel_info')
-          .insert(hostelData);
-
-        if (error) throw error;
-
+        await api.hostels.create(formDataToSend);
         toast({
           title: "Success",
           description: "Hostel information created successfully"
@@ -222,12 +254,16 @@ const HostelManager = () => {
       rooms_available: hostel.rooms_available.toString(),
       facilities: hostel.facilities || [],
       rules: hostel.rules || '',
-      fee_structure: hostel.fee_structure ? JSON.stringify(hostel.fee_structure, null, 2) : '',
       warden_name: hostel.warden_name || '',
       warden_contact: hostel.warden_contact || '',
-      image_url: hostel.image_url || '',
       is_active: hostel.is_active
     });
+
+    // Set existing images as previews
+    if (hostel.images && hostel.images.length > 0) {
+      setImagePreviews(hostel.images.map(img => img.image_url));
+    }
+
     setEditingHostel(hostel);
     setIsDialogOpen(true);
   };
@@ -238,18 +274,11 @@ const HostelManager = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('hostel_info')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
+      await api.hostels.delete(id);
       toast({
         title: "Success",
         description: "Hostel information deleted successfully"
       });
-      
       fetchHostels();
     } catch (error) {
       console.error('Error deleting hostel:', error);
@@ -292,7 +321,7 @@ const HostelManager = () => {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Building className="h-8 w-8 text-primary" />
-            Hostel Manager
+            Hostel Details
           </h1>
           <p className="text-muted-foreground">Manage hostel accommodation and facilities</p>
         </div>
@@ -316,7 +345,7 @@ const HostelManager = () => {
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="basic">Basic Info</TabsTrigger>
                   <TabsTrigger value="facilities">Facilities</TabsTrigger>
-                  <TabsTrigger value="fees">Fees & Rules</TabsTrigger>
+                  <TabsTrigger value="images">Images</TabsTrigger>
                   <TabsTrigger value="warden">Warden Info</TabsTrigger>
                 </TabsList>
 
@@ -389,13 +418,13 @@ const HostelManager = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="image_url">Image URL</Label>
-                    <Input
-                      id="image_url"
-                      type="url"
-                      value={formData.image_url}
-                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                      placeholder="https://example.com/image.jpg"
+                    <Label htmlFor="rules">Rules & Regulations</Label>
+                    <Textarea
+                      id="rules"
+                      value={formData.rules}
+                      onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
+                      placeholder="Enter hostel rules and regulations..."
+                      rows={6}
                     />
                   </div>
 
@@ -424,8 +453,8 @@ const HostelManager = () => {
                           }
                         }}
                       />
-                      <Button 
-                        type="button" 
+                      <Button
+                        type="button"
                         onClick={() => addFacility(facilityInput)}
                         disabled={!facilityInput.trim()}
                       >
@@ -476,32 +505,59 @@ const HostelManager = () => {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="fees" className="space-y-4">
+                <TabsContent value="images" className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="fee_structure">Fee Structure (JSON format)</Label>
-                    <Textarea
-                      id="fee_structure"
-                      value={formData.fee_structure}
-                      onChange={(e) => setFormData({ ...formData, fee_structure: e.target.value })}
-                      placeholder='{"monthly_rent": 5000, "security_deposit": 10000, "mess_charges": 3000}'
-                      rows={4}
-                      className="font-mono text-sm"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Enter fee structure as JSON object with key-value pairs
-                    </p>
+                    <Label>Upload Images (Max 4)</Label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <input
+                        type="file"
+                        id="image-upload"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageSelect}
+                        className="hidden"
+                        disabled={selectedImages.length >= 4}
+                      />
+                      <label
+                        htmlFor="image-upload"
+                        className="cursor-pointer flex flex-col items-center"
+                      >
+                        <Upload className="h-12 w-12 text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-600">
+                          Click to upload images ({selectedImages.length}/4)
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          PNG, JPG up to 10MB
+                        </p>
+                      </label>
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="rules">Rules & Regulations</Label>
-                    <Textarea
-                      id="rules"
-                      value={formData.rules}
-                      onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
-                      placeholder="Enter hostel rules and regulations..."
-                      rows={6}
-                    />
-                  </div>
+                  {imagePreviews.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={preview}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => removeImage(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <Badge className="absolute bottom-2 left-2">
+                            {index + 1}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="warden" className="space-y-4">
@@ -575,8 +631,8 @@ const HostelManager = () => {
             <Building className="h-16 w-16 text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold mb-2">No Hostels Found</h3>
             <p className="text-muted-foreground text-center mb-4">
-              {searchTerm || filterType !== 'all' 
-                ? 'No hostels match your current filters.' 
+              {searchTerm || filterType !== 'all'
+                ? 'No hostels match your current filters.'
                 : 'Get started by adding your first hostel information.'}
             </p>
             {!searchTerm && filterType === 'all' && (
@@ -622,6 +678,20 @@ const HostelManager = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
+                    {/* Images */}
+                    {hostel.images && hostel.images.length > 0 && (
+                      <div className="grid grid-cols-4 gap-2">
+                        {hostel.images.slice(0, 4).map((image, idx) => (
+                          <img
+                            key={image.id}
+                            src={image.image_url}
+                            alt={`${hostel.name} ${idx + 1}`}
+                            className="w-full h-20 object-cover rounded"
+                          />
+                        ))}
+                      </div>
+                    )}
+
                     {/* Capacity Info */}
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="flex items-center text-muted-foreground">
@@ -662,7 +732,7 @@ const HostelManager = () => {
                     )}
 
                     <Separator />
-                    
+
                     <div className="flex justify-end space-x-2">
                       <Button
                         variant="outline"

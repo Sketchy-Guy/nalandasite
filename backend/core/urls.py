@@ -5,7 +5,8 @@ from .views import (
     MagazineViewSet, ClubViewSet, CampusEventViewSet, AcademicServiceViewSet,
     TopperViewSet, CreativeWorkViewSet, StudentSubmissionViewSet, CampusStatsViewSet,
     NewsViewSet, ContactInfoViewSet, OfficeLocationViewSet, QuickContactInfoViewSet, TimetableViewSet,
-    FeesStructureViewSet
+    FeesStructureViewSet, ScholarshipViewSet, TranscriptServiceViewSet, AdminRoleViewSet, AdminActivityLogViewSet,
+    HostelViewSet, SportsFacilityViewSet
 )
 
 router = DefaultRouter()
@@ -29,6 +30,12 @@ router.register(r'office-locations', OfficeLocationViewSet)
 router.register(r'quick-contact-info', QuickContactInfoViewSet)
 router.register(r'timetables', TimetableViewSet)
 router.register(r'fees-structure', FeesStructureViewSet)
+router.register(r'scholarships', ScholarshipViewSet)
+router.register(r'transcript-services', TranscriptServiceViewSet)
+router.register(r'admin-roles', AdminRoleViewSet)
+router.register(r'admin-activity-logs', AdminActivityLogViewSet)
+router.register(r'hostels', HostelViewSet)
+router.register(r'sports-facilities', SportsFacilityViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

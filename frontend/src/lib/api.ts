@@ -1,5 +1,4 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
-console.log('API Base URL:', API_BASE_URL);
 
 // API client with authentication
 class ApiClient {
@@ -40,17 +39,17 @@ class ApiClient {
 
     if (response.status === 401) {
       // Token expired, try to refresh
-      console.log('Token expired, attempting refresh...');
+      // Token expired, attempting refresh
       await this.refreshToken();
 
       if (this.token) {
         // Retry the request with new token
         headers['Authorization'] = `Bearer ${this.token}`;
-        console.log('Retrying request with refreshed token...');
+        // Retrying request with refreshed token
         const retryResponse = await fetch(url, { ...options, headers });
         return retryResponse;
       } else {
-        console.log('Token refresh failed, redirecting to login...');
+        // Token refresh failed, redirecting to login
         return response; // Return original 401 response
       }
     }
@@ -61,13 +60,13 @@ class ApiClient {
   private async refreshToken() {
     const refreshToken = localStorage.getItem('refresh_token');
     if (!refreshToken) {
-      console.log('No refresh token found, logging out...');
+      // No refresh token found, logging out
       this.logout();
       return;
     }
 
     try {
-      console.log('Attempting to refresh token...');
+      // Attempting to refresh token
       const response = await fetch(`${this.baseURL}/auth/token/refresh/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,10 +77,10 @@ class ApiClient {
         const data = await response.json();
         this.token = data.access;
         localStorage.setItem('access_token', data.access);
-        console.log('Token refreshed successfully');
+        // Token refreshed successfully
       } else {
         const errorText = await response.text();
-        console.log('Token refresh failed:', response.status, errorText);
+        // Token refresh failed
         this.logout();
       }
     } catch (error) {
@@ -484,5 +483,29 @@ export const api = {
     update: (id: string, data: any) => apiClient.put(`/fees-structure/${id}/`, data),
     patch: (id: string, data: any) => apiClient.patch(`/fees-structure/${id}/`, data),
     delete: (id: string) => apiClient.delete(`/fees-structure/${id}/`),
+  },
+
+  // Hostels
+  hostels: {
+    list: (params?: any) => apiClient.get('/hostels/', params),
+    get: (id: string) => apiClient.get(`/hostels/${id}/`),
+    create: (formData: FormData) => apiClient.post('/hostels/', formData),
+    update: (id: string, formData: FormData) => apiClient.put(`/hostels/${id}/`, formData),
+    patch: (id: string, data: any) => apiClient.patch(`/hostels/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/hostels/${id}/`),
+    deleteImage: (hostelId: string, imageId: string) =>
+      apiClient.delete(`/hostels/${hostelId}/images/${imageId}/`),
+  },
+
+  // Sports Facilities
+  sportsFacilities: {
+    list: (params?: any) => apiClient.get('/sports-facilities/', params),
+    get: (id: string) => apiClient.get(`/sports-facilities/${id}/`),
+    create: (formData: FormData) => apiClient.post('/sports-facilities/', formData),
+    update: (id: string, formData: FormData) => apiClient.put(`/sports-facilities/${id}/`, formData),
+    patch: (id: string, data: any) => apiClient.patch(`/sports-facilities/${id}/`, data),
+    delete: (id: string) => apiClient.delete(`/sports-facilities/${id}/`),
+    deleteImage: (facilityId: string, imageId: string) =>
+      apiClient.delete(`/sports-facilities/${facilityId}/images/${imageId}/`),
   },
 };

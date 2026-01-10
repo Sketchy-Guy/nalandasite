@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 interface TranscriptService {
   id: string;
@@ -54,39 +55,27 @@ export default function TranscriptsManager() {
     '2 months',
   ];
 
-  // For demo purposes, using academic_pages table to store transcript services
-  // In a real application, you would create a dedicated transcripts table
   useEffect(() => {
     fetchServices();
   }, []);
 
   const fetchServices = async () => {
     try {
-      // Using academic_pages table for demo - filter by slug containing 'transcript'
-      const { data, error } = await supabase
-        .from('academic_pages')
-        .select('*')
-        .ilike('slug', '%transcript%')
-        .order('created_at', { ascending: false });
+      const response = await fetch(`${API_BASE_URL}/transcript-services/`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (error) throw error;
-      
-      // Transform data to match our interface
-      const transformedData = (data || []).map(item => ({
-        id: item.id,
-        service_name: item.title,
-        description: item.content,
-        processing_time: '3-5 working days', // Default values for demo
-        required_documents: ['ID Proof', 'Academic Records'],
-        fees_amount: 500,
-        contact_email: 'academics@nalanda.com',
-        is_online: true,
-        is_active: item.is_active,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-      }));
-      
-      setServices(transformedData);
+      if (response.ok) {
+        const data = await response.json();
+        // Handle both array and paginated responses
+        const servicesData = Array.isArray(data) ? data : (data.results || []);
+        setServices(servicesData);
+      } else {
+        throw new Error('Failed to fetch transcript services');
+      }
     } catch (error) {
       console.error('Error fetching transcript services:', error);
       toast({
@@ -128,43 +117,46 @@ export default function TranscriptsManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const serviceData = {
-        title: formData.service_name,
-        content: formData.description,
-        slug: `transcript-${formData.service_name.toLowerCase().replace(/\s+/g, '-')}`,
-        meta_description: formData.description?.substring(0, 160),
+        service_name: formData.service_name,
+        description: formData.description || null,
+        processing_time: formData.processing_time || null,
+        required_documents: formData.required_documents
+          ? formData.required_documents.split(',').map(doc => doc.trim()).filter(doc => doc)
+          : [],
+        fees_amount: formData.fees_amount ? parseFloat(formData.fees_amount) : null,
+        contact_email: formData.contact_email || null,
+        is_online: formData.is_online,
       };
 
-      if (editingService) {
-        const { error } = await supabase
-          .from('academic_pages')
-          .update(serviceData)
-          .eq('id', editingService.id);
+      const url = editingService
+        ? `${API_BASE_URL}/transcript-services/${editingService.id}/`
+        : `${API_BASE_URL}/transcript-services/`;
 
-        if (error) throw error;
+      const method = editingService ? 'PUT' : 'POST';
 
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(serviceData),
+      });
+
+      if (response.ok) {
         toast({
           title: 'Success',
-          description: 'Transcript service updated successfully',
+          description: `Transcript service ${editingService ? 'updated' : 'created'} successfully`,
         });
+        resetForm();
+        setIsDialogOpen(false);
+        fetchServices();
       } else {
-        const { error } = await supabase
-          .from('academic_pages')
-          .insert(serviceData);
-
-        if (error) throw error;
-
-        toast({
-          title: 'Success',
-          description: 'Transcript service created successfully',
-        });
+        throw new Error('Failed to save transcript service');
       }
-
-      resetForm();
-      setIsDialogOpen(false);
-      fetchServices();
     } catch (error) {
       console.error('Error saving transcript service:', error);
       toast({
@@ -177,19 +169,24 @@ export default function TranscriptsManager() {
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('academic_pages')
-        .update({ is_active: !currentStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Success',
-        description: `Transcript service ${!currentStatus ? 'activated' : 'deactivated'}`,
+      const response = await fetch(`${API_BASE_URL}/transcript-services/${id}/`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_active: !currentStatus }),
       });
 
-      fetchServices();
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: `Transcript service ${!currentStatus ? 'activated' : 'deactivated'}`,
+        });
+        fetchServices();
+      } else {
+        throw new Error('Failed to update service status');
+      }
     } catch (error) {
       console.error('Error updating service status:', error);
       toast({
@@ -204,19 +201,22 @@ export default function TranscriptsManager() {
     if (!confirm('Are you sure you want to delete this transcript service?')) return;
 
     try {
-      const { error } = await supabase
-        .from('academic_pages')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Success',
-        description: 'Transcript service deleted successfully',
+      const response = await fetch(`${API_BASE_URL}/transcript-services/${id}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
       });
 
-      fetchServices();
+      if (response.ok || response.status === 204) {
+        toast({
+          title: 'Success',
+          description: 'Transcript service deleted successfully',
+        });
+        fetchServices();
+      } else {
+        throw new Error('Failed to delete transcript service');
+      }
     } catch (error) {
       console.error('Error deleting transcript service:', error);
       toast({
@@ -234,11 +234,8 @@ export default function TranscriptsManager() {
 
   const formatAmount = (amount: number | null) => {
     if (!amount) return 'Free';
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
+    const formatted = new Intl.NumberFormat('en-IN').format(amount);
+    return `Rs. ${formatted}/-`;
   };
 
   if (loading) {

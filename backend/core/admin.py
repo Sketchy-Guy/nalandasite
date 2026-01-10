@@ -1,8 +1,8 @@
 from django.contrib import admin
 from .models import (
-    Department, HeroImage, Notice, Magazine, Club, CampusEvent,
-    AcademicService, Topper, CreativeWork, StudentSubmission, Timetable,
-    FeesStructure
+    Program, Trade, Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club, CampusEvent,
+    AcademicService, Topper, CreativeWork, StudentSubmission, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable,
+    FeesStructure, Scholarship, TranscriptService, AdminRole, AdminActivityLog, Hostel, HostelImage, SportsFacility, SportsFacilityImage
 )
 
 @admin.register(Department)
@@ -78,10 +78,28 @@ class CampusEventAdmin(admin.ModelAdmin):
 
 @admin.register(AcademicService)
 class AcademicServiceAdmin(admin.ModelAdmin):
-    list_display = ['name', 'link_url', 'is_active', 'created_at']
-    list_filter = ['is_active', 'created_at']
-    search_fields = ['name', 'description']
-    ordering = ['name']
+    list_display = ['title', 'category', 'department', 'file_type', 'download_count', 'is_active', 'created_at']
+    list_filter = ['category', 'department', 'is_active', 'created_at']
+    search_fields = ['title', 'description', 'category']
+    ordering = ['-created_at']
+    readonly_fields = ['download_count', 'created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Document Information', {
+            'fields': ('title', 'description', 'category', 'department')
+        }),
+        ('File Upload', {
+            'fields': ('file', 'drive_url'),
+            'description': 'Upload a file OR provide a Google Drive link'
+        }),
+        ('File Metadata (Auto-generated)', {
+            'fields': ('file_url', 'file_type', 'file_size', 'download_count'),
+            'classes': ('collapse',)
+        }),
+        ('Display Settings', {
+            'fields': ('is_active',)
+        })
+    )
 
 @admin.register(Topper)
 class TopperAdmin(admin.ModelAdmin):
@@ -184,3 +202,86 @@ class FeesStructureAdmin(admin.ModelAdmin):
             'fields': ('is_active',)
         })
     )
+
+
+class HostelImageInline(admin.TabularInline):
+    model = HostelImage
+    extra = 1
+    max_num = 4
+    fields = ['image', 'display_order']
+    ordering = ['display_order']
+
+@admin.register(Hostel)
+class HostelAdmin(admin.ModelAdmin):
+    list_display = ['name', 'hostel_type', 'capacity', 'rooms_available', 'warden_name', 'is_active', 'created_at']
+    list_filter = ['hostel_type', 'is_active', 'created_at']
+    search_fields = ['name', 'description', 'warden_name']
+    readonly_fields = ['created_at', 'updated_at']
+    inlines = [HostelImageInline]
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'description', 'hostel_type', 'is_active')
+        }),
+        ('Capacity', {
+            'fields': ('capacity', 'rooms_available')
+        }),
+        ('Facilities & Rules', {
+            'fields': ('facilities', 'rules')
+        }),
+        ('Warden Information', {
+            'fields': ('warden_name', 'warden_contact')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+@admin.register(HostelImage)
+class HostelImageAdmin(admin.ModelAdmin):
+    list_display = ['hostel', 'display_order', 'created_at']
+    list_filter = ['hostel', 'created_at']
+    ordering = ['hostel', 'display_order']
+
+class SportsFacilityImageInline(admin.TabularInline):
+    model = SportsFacilityImage
+    extra = 1
+    max_num = 4
+    fields = ['image', 'display_order']
+    ordering = ['display_order']
+
+@admin.register(SportsFacility)
+class SportsFacilityAdmin(admin.ModelAdmin):
+    list_display = ['name', 'facility_type', 'capacity', 'booking_required', 'is_active', 'created_at']
+    list_filter = ['facility_type', 'booking_required', 'is_active', 'created_at']
+    search_fields = ['name', 'description', 'contact_person', 'contact_email']
+    readonly_fields = ['created_at', 'updated_at']
+    inlines = [SportsFacilityImageInline]
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'description', 'facility_type', 'is_active')
+        }),
+        ('Capacity & Hours', {
+            'fields': ('capacity', 'operating_hours', 'booking_required')
+        }),
+        ('Contact Information', {
+            'fields': ('contact_person', 'contact_email')
+        }),
+        ('Legacy', {
+            'fields': ('image_url',),
+            'classes': ('collapse',),
+            'description': 'External image URL (legacy field - use image uploads above instead)'
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+@admin.register(SportsFacilityImage)
+class SportsFacilityImageAdmin(admin.ModelAdmin):
+    list_display = ['facility', 'display_order', 'created_at']
+    list_filter = ['facility', 'created_at']
+    ordering = ['facility', 'display_order']

@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GraduationCap, Search, Calendar, Users, ExternalLink, Award, DollarSign } from "lucide-react";
+import { GraduationCap, Search, Calendar, Users, ExternalLink, Award, IndianRupee } from "lucide-react";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { format } from "date-fns";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 interface Scholarship {
   id: string;
@@ -17,6 +18,7 @@ interface Scholarship {
   amount: number;
   application_deadline: string;
   application_url: string;
+  is_active: boolean;
   created_at: string;
 }
 
@@ -31,14 +33,15 @@ const ScholarshipsPage = () => {
 
   const fetchScholarships = async () => {
     try {
-      const response = await api.academicServices.list();
-      // Filter for scholarship-related services
-      const scholarshipData = (response.results || []).filter((item: any) => 
-        item.category?.toLowerCase().includes('scholarship') || 
-        item.title?.toLowerCase().includes('scholarship') ||
-        item.title?.toLowerCase().includes('financial')
-      );
-      setScholarships(scholarshipData);
+      const response = await fetch(`${API_BASE_URL}/scholarships/`);
+      if (response.ok) {
+        const data = await response.json();
+        // Django REST framework returns paginated results or array
+        const scholarshipsData = Array.isArray(data) ? data : (data.results || []);
+        // Filter only active scholarships for public view
+        const activeScholarships = scholarshipsData.filter((s: Scholarship) => s.is_active);
+        setScholarships(activeScholarships);
+      }
     } catch (error) {
       console.error("Error fetching scholarships:", error);
     } finally {
@@ -46,17 +49,15 @@ const ScholarshipsPage = () => {
     }
   };
 
-  const filteredScholarships = scholarships.filter((scholarship) => 
+  const filteredScholarships = scholarships.filter((scholarship) =>
     scholarship.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     scholarship.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     scholarship.eligibility_criteria?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-    }).format(amount);
+    const formatted = new Intl.NumberFormat('en-IN').format(amount);
+    return `Rs. ${formatted}/-`;
   };
 
   const isDeadlineApproaching = (deadline: string) => {
@@ -116,7 +117,7 @@ const ScholarshipsPage = () => {
               <p className="text-sm text-muted-foreground">Scholarships for academic excellence</p>
             </div>
             <div className="text-center">
-              <DollarSign className="h-8 w-8 text-green-600 mx-auto mb-2" />
+              <IndianRupee className="h-8 w-8 text-green-600 mx-auto mb-2" />
               <h3 className="font-semibold">Need-Based</h3>
               <p className="text-sm text-muted-foreground">Financial assistance for economically weaker sections</p>
             </div>
@@ -152,7 +153,7 @@ const ScholarshipsPage = () => {
               <Award className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-foreground mb-2">No Scholarships Found</h3>
               <p className="text-muted-foreground">
-                {searchTerm 
+                {searchTerm
                   ? "Try adjusting your search terms to see more results."
                   : "New scholarship opportunities will be posted here soon."}
               </p>
@@ -187,7 +188,7 @@ const ScholarshipsPage = () => {
                       {/* Amount */}
                       {scholarship.amount && (
                         <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg">
-                          <DollarSign className="h-5 w-5 text-primary" />
+                          <IndianRupee className="h-5 w-5 text-primary" />
                           <div>
                             <span className="text-sm font-medium text-muted-foreground">Scholarship Amount</span>
                             <p className="text-xl font-bold text-primary">
@@ -221,7 +222,7 @@ const ScholarshipsPage = () => {
 
                       {/* Apply Button */}
                       {scholarship.application_url && !isDeadlinePassed(scholarship.application_deadline) && (
-                        <Button 
+                        <Button
                           onClick={() => window.open(scholarship.application_url, '_blank')}
                           className="w-full"
                         >
@@ -282,7 +283,7 @@ const ScholarshipsPage = () => {
           </div>
         </div>
       </section>
-      
+
       <Footer />
     </div>
   );

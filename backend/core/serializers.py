@@ -2,8 +2,9 @@ from rest_framework import serializers
 from .models import (
     Program, Trade, Department, DepartmentGalleryImage, HeroImage, Notice, Magazine, Club, CampusEvent,
     AcademicService, Topper, CreativeWork, StudentSubmission, CampusStats, News, ContactInfo, OfficeLocation, QuickContactInfo, Timetable,
-    FeesStructure
+    FeesStructure, Scholarship, TranscriptService, AdminRole, AdminActivityLog, Hostel, HostelImage, SportsFacility, SportsFacilityImage
 )
+from django.contrib.auth.models import User
 
 class ProgramSerializer(serializers.ModelSerializer):
     trades_count = serializers.SerializerMethodField()
@@ -322,3 +323,188 @@ class FeesStructureSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Amount must be a positive number")
         
         return value
+
+
+class ScholarshipSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Scholarship
+        fields = '__all__'
+
+
+class TranscriptServiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TranscriptService
+        fields = '__all__'
+
+
+class AdminRoleSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_full_name = serializers.SerializerMethodField()
+    granted_by_name = serializers.SerializerMethodField()
+    role_level_display = serializers.CharField(source='get_role_level_display', read_only=True)
+    is_superadmin = serializers.BooleanField(read_only=True)
+    
+    class Meta:
+        model = AdminRole
+        fields = '__all__'
+        read_only_fields = ['granted_at', 'created_at', 'updated_at']
+    
+    def get_user_full_name(self, obj):
+        profile = getattr(obj.user, 'profile', None)
+        if profile:
+            return profile.full_name or obj.user.username
+        return obj.user.username
+    
+    def get_granted_by_name(self, obj):
+        if obj.granted_by:
+            profile = getattr(obj.granted_by, 'profile', None)
+            if profile:
+                return profile.full_name or obj.granted_by.username
+            return obj.granted_by.username
+        return 'System'
+
+
+class AdminActivityLogSerializer(serializers.ModelSerializer):
+    admin_email = serializers.EmailField(source='admin.email', read_only=True)
+    admin_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = AdminActivityLog
+        fields = '__all__'
+        read_only_fields = ['created_at']
+    
+    def get_admin_name(self, obj):
+        profile = getattr(obj.admin, 'profile', None)
+        if profile:
+            return profile.full_name or obj.admin.username
+        return obj.admin.username
+
+class HostelImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = HostelImage
+        fields = ['id', 'image', 'image_url', 'display_order', 'created_at']
+        read_only_fields = ['created_at']
+    
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+
+class HostelSerializer(serializers.ModelSerializer):
+    images = HostelImageSerializer(many=True, read_only=True)
+    uploaded_images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False
+    )
+    
+    class Meta:
+        model = Hostel
+        fields = '__all__'
+    
+    def create(self, validated_data):
+        uploaded_images = validated_data.pop('uploaded_images', [])
+        hostel = Hostel.objects.create(**validated_data)
+        
+        # Create hostel images (max 4)
+        for idx, image in enumerate(uploaded_images[:4], start=1):
+            HostelImage.objects.create(
+                hostel=hostel,
+                image=image,
+                display_order=idx
+            )
+        
+        return hostel
+    
+    def update(self, instance, validated_data):
+        uploaded_images = validated_data.pop('uploaded_images', None)
+        
+        # Update hostel fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Handle image updates if provided
+        if uploaded_images is not None:
+            # Delete existing images
+            instance.images.all().delete()
+            
+            # Create new images (max 4)
+            for idx, image in enumerate(uploaded_images[:4], start=1):
+                HostelImage.objects.create(
+                    hostel=instance,
+                    image=image,
+                    display_order=idx
+                )
+        
+        return instance
+
+class SportsFacilityImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = SportsFacilityImage
+        fields = ['id', 'image', 'image_url', 'display_order', 'created_at']
+        read_only_fields = ['created_at']
+    
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and hasattr(obj.image, 'url'):
+            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        return None
+
+class SportsFacilitySerializer(serializers.ModelSerializer):
+    images = SportsFacilityImageSerializer(many=True, read_only=True)
+    uploaded_images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False,
+        max_length=4
+    )
+    
+    class Meta:
+        model = SportsFacility
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']
+    
+    def create(self, validated_data):
+        uploaded_images = validated_data.pop('uploaded_images', [])
+        facility = SportsFacility.objects.create(**validated_data)
+        
+        # Create images
+        for idx, image in enumerate(uploaded_images[:4], start=1):
+            SportsFacilityImage.objects.create(
+                facility=facility,
+                image=image,
+                display_order=idx
+            )
+        
+        return facility
+    
+    def update(self, instance, validated_data):
+        uploaded_images = validated_data.pop('uploaded_images', None)
+        
+        # Update facility fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Update images if provided
+        if uploaded_images is not None:
+            # Delete old images
+            instance.images.all().delete()
+            
+            # Create new images
+            for idx, image in enumerate(uploaded_images[:4], start=1):
+                SportsFacilityImage.objects.create(
+                    facility=instance,
+                    image=image,
+                    display_order=idx
+                )
+        
+        return instance

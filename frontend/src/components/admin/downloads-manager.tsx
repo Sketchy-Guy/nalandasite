@@ -48,7 +48,7 @@ export default function DownloadsManager() {
 
   const categories = [
     'Application Forms',
-    'Syllabi', 
+    'Syllabi',
     'Handbooks',
     'Regulations',
     'Academic Calendar',
@@ -128,12 +128,12 @@ export default function DownloadsManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (uploadType === 'file' && !formData.file) {
       toast.error('Please select an image file to upload');
       return;
     }
-    
+
     if (uploadType === 'file' && formData.file) {
       // Check file size (5MB limit for images)
       const maxSize = 5 * 1024 * 1024; // 5MB in bytes
@@ -141,7 +141,7 @@ export default function DownloadsManager() {
         toast.error('Image file size must be less than 5MB');
         return;
       }
-      
+
       // Check if it's actually an image
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
       if (!allowedTypes.includes(formData.file.type)) {
@@ -149,7 +149,7 @@ export default function DownloadsManager() {
         return;
       }
     }
-    
+
     if (uploadType === 'drive' && !formData.drive_url) {
       toast.error('Please provide a Google Drive URL for your document');
       return;
@@ -162,7 +162,7 @@ export default function DownloadsManager() {
     if (formData.department) {
       submitData.append('department', formData.department);
     }
-    
+
     if (uploadType === 'file' && formData.file) {
       submitData.append('file', formData.file);
     } else if (uploadType === 'drive') {
@@ -183,7 +183,7 @@ export default function DownloadsManager() {
 
   const filteredDownloads = downloads.filter((download: any) => {
     const matchesSearch = download.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         download.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      download.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'all' || download.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
@@ -205,7 +205,7 @@ export default function DownloadsManager() {
   }
 
   // Log downloads for debugging
-  console.log('Downloads loaded:', downloads, 'Loading:', loading);
+  // console.log('Downloads loaded:', downloads, 'Loading:', loading);
 
   return (
     <div className="space-y-6">
@@ -257,8 +257,8 @@ export default function DownloadsManager() {
                   </div>
                   <div>
                     <Label htmlFor="department">Department (Optional)</Label>
-                    <Select 
-                      value={formData.department || ""} 
+                    <Select
+                      value={formData.department || ""}
                       onValueChange={(value) => setFormData({ ...formData, department: value === "all" ? "" : value })}
                     >
                       <SelectTrigger>
@@ -289,7 +289,7 @@ export default function DownloadsManager() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Upload Type Selection */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-foreground">Upload Method</h3>
@@ -306,7 +306,7 @@ export default function DownloadsManager() {
                       <span className="sm:hidden">Docs</span>
                     </TabsTrigger>
                   </TabsList>
-                  
+
                   <TabsContent value="file" className="space-y-3 mt-4">
                     <div className="border-2 border-dashed border-blue-200 bg-blue-50/50 rounded-lg p-6 text-center">
                       <Upload className="h-8 w-8 mx-auto mb-2 text-blue-500" />
@@ -334,7 +334,7 @@ export default function DownloadsManager() {
                       </div>
                     )}
                   </TabsContent>
-                  
+
                   <TabsContent value="drive" className="space-y-3 mt-4">
                     <div className="border-2 border-dashed border-green-200 bg-green-50/50 rounded-lg p-6">
                       <div className="flex items-center gap-2 mb-3">
@@ -370,7 +370,7 @@ export default function DownloadsManager() {
                   </TabsContent>
                 </Tabs>
               </div>
-              
+
               <Button type="submit" disabled={createMutation.isPending} className="w-full">
                 {createMutation.isPending ? 'Uploading...' : 'Upload Document'}
               </Button>
@@ -427,99 +427,99 @@ export default function DownloadsManager() {
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>File Size</TableHead>
-                <TableHead>Downloads</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredDownloads.map((download: any) => (
-                <TableRow key={download.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{download.title}</div>
-                      {download.description && (
-                        <div className="text-sm text-muted-foreground truncate max-w-xs">
-                          {download.description}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{download.category}</Badge>
-                  </TableCell>
-                  <TableCell>{download.department || 'All'}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {download.drive_url ? (
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <Link className="h-3 w-3" />
-                          Drive
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <FileText className="h-3 w-3" />
-                          File
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {download.file_size ? formatFileSize(download.file_size) : 'N/A'}
-                  </TableCell>
-                  <TableCell>{download.download_count || 0}</TableCell>
-                  <TableCell>
-                    <Badge variant={download.is_active ? 'default' : 'secondary'}>
-                      {download.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-2">
-                      {(download.file_url || download.drive_url) && (
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>File Size</TableHead>
+                  <TableHead>Downloads</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredDownloads.map((download: any) => (
+                  <TableRow key={download.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{download.title}</div>
+                        {download.description && (
+                          <div className="text-sm text-muted-foreground truncate max-w-xs">
+                            {download.description}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{download.category}</Badge>
+                    </TableCell>
+                    <TableCell>{download.department || 'All'}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {download.drive_url ? (
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            <Link className="h-3 w-3" />
+                            Drive
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            <FileText className="h-3 w-3" />
+                            File
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {download.file_size ? formatFileSize(download.file_size) : 'N/A'}
+                    </TableCell>
+                    <TableCell>{download.download_count || 0}</TableCell>
+                    <TableCell>
+                      <Badge variant={download.is_active ? 'default' : 'secondary'}>
+                        {download.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-2">
+                        {(download.file_url || download.drive_url) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(download.file_url || download.drive_url, '_blank')}
+                            className="flex items-center gap-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            <span className="hidden sm:inline">View</span>
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => window.open(download.file_url || download.drive_url, '_blank')}
+                          onClick={() => toggleActive(download.id, download.is_active)}
                           className="flex items-center gap-1"
                         >
-                          <ExternalLink className="h-3 w-3" />
-                          <span className="hidden sm:inline">View</span>
+                          <span className="hidden sm:inline">
+                            {download.is_active ? 'Deactivate' : 'Activate'}
+                          </span>
+                          <span className="sm:hidden">
+                            {download.is_active ? 'Off' : 'On'}
+                          </span>
                         </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => toggleActive(download.id, download.is_active)}
-                        className="flex items-center gap-1"
-                      >
-                        <span className="hidden sm:inline">
-                          {download.is_active ? 'Deactivate' : 'Activate'}
-                        </span>
-                        <span className="sm:hidden">
-                          {download.is_active ? 'Off' : 'On'}
-                        </span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => deleteDownload(download.id)}
-                        className="flex items-center gap-1"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        <span className="hidden sm:inline">Delete</span>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteDownload(download.id)}
+                          className="flex items-center gap-1"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          <span className="hidden sm:inline">Delete</span>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
             </Table>
           </div>
           {filteredDownloads.length === 0 && (

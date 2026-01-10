@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 interface Scholarship {
   id: string;
@@ -47,13 +48,21 @@ export default function ScholarshipsManager() {
 
   const fetchScholarships = async () => {
     try {
-      const { data, error } = await supabase
-        .from('scholarships')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const response = await fetch(`${API_BASE_URL}/scholarships/`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (error) throw error;
-      setScholarships(data || []);
+      if (response.ok) {
+        const data = await response.json();
+        // Django REST framework returns paginated results or array
+        const scholarshipsData = Array.isArray(data) ? data : (data.results || []);
+        setScholarships(scholarshipsData);
+      } else {
+        throw new Error('Failed to fetch scholarships');
+      }
     } catch (error) {
       console.error('Error fetching scholarships:', error);
       toast({
@@ -93,7 +102,7 @@ export default function ScholarshipsManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const scholarshipData = {
         title: formData.title,
@@ -104,34 +113,32 @@ export default function ScholarshipsManager() {
         application_url: formData.application_url || null,
       };
 
-      if (editingScholarship) {
-        const { error } = await supabase
-          .from('scholarships')
-          .update(scholarshipData)
-          .eq('id', editingScholarship.id);
+      const url = editingScholarship
+        ? `${API_BASE_URL}/scholarships/${editingScholarship.id}/`
+        : `${API_BASE_URL}/scholarships/`;
 
-        if (error) throw error;
+      const method = editingScholarship ? 'PUT' : 'POST';
 
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(scholarshipData),
+      });
+
+      if (response.ok) {
         toast({
           title: 'Success',
-          description: 'Scholarship updated successfully',
+          description: `Scholarship ${editingScholarship ? 'updated' : 'created'} successfully`,
         });
+        resetForm();
+        setIsDialogOpen(false);
+        fetchScholarships();
       } else {
-        const { error } = await supabase
-          .from('scholarships')
-          .insert(scholarshipData);
-
-        if (error) throw error;
-
-        toast({
-          title: 'Success',
-          description: 'Scholarship created successfully',
-        });
+        throw new Error('Failed to save scholarship');
       }
-
-      resetForm();
-      setIsDialogOpen(false);
-      fetchScholarships();
     } catch (error) {
       console.error('Error saving scholarship:', error);
       toast({
@@ -144,19 +151,24 @@ export default function ScholarshipsManager() {
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('scholarships')
-        .update({ is_active: !currentStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Success',
-        description: `Scholarship ${!currentStatus ? 'activated' : 'deactivated'}`,
+      const response = await fetch(`${API_BASE_URL}/scholarships/${id}/`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_active: !currentStatus }),
       });
 
-      fetchScholarships();
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: `Scholarship ${!currentStatus ? 'activated' : 'deactivated'}`,
+        });
+        fetchScholarships();
+      } else {
+        throw new Error('Failed to update scholarship status');
+      }
     } catch (error) {
       console.error('Error updating scholarship status:', error);
       toast({
@@ -171,19 +183,22 @@ export default function ScholarshipsManager() {
     if (!confirm('Are you sure you want to delete this scholarship?')) return;
 
     try {
-      const { error } = await supabase
-        .from('scholarships')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Success',
-        description: 'Scholarship deleted successfully',
+      const response = await fetch(`${API_BASE_URL}/scholarships/${id}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
       });
 
-      fetchScholarships();
+      if (response.ok || response.status === 204) {
+        toast({
+          title: 'Success',
+          description: 'Scholarship deleted successfully',
+        });
+        fetchScholarships();
+      } else {
+        throw new Error('Failed to delete scholarship');
+      }
     } catch (error) {
       console.error('Error deleting scholarship:', error);
       toast({

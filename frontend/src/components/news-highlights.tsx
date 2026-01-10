@@ -38,27 +38,21 @@ const NewsHighlights = () => {
 
   const fetchNews = async () => {
     try {
-      console.log('Fetching news from API...');
-      
-      // Try direct fetch first to test if API is accessible
+      // Fetch news from API
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
       const directResponse = await fetch(`${API_BASE_URL}/news/`);
-      console.log('Direct fetch response:', directResponse.status);
-      
+
       if (directResponse.ok) {
         const directData = await directResponse.json();
-        console.log('Direct fetch data:', directData);
-        
+
         // Extract results from paginated response
         const newsItems = directData.results || directData;
-        console.log('News items:', newsItems);
-        
+
         // Filter active news and sort by published date
         const activeNews = newsItems.filter((item: NewsItem) => item.is_active)
-                                   .sort((a: NewsItem, b: NewsItem) => 
-                                     new Date(b.published_date).getTime() - new Date(a.published_date).getTime())
-                                   .slice(0, 6);
-        console.log('Filtered active news:', activeNews);
+          .sort((a: NewsItem, b: NewsItem) =>
+            new Date(b.published_date).getTime() - new Date(a.published_date).getTime())
+          .slice(0, 6);
         setNews(activeNews);
       } else {
         const errorText = await directResponse.text();
@@ -177,8 +171,8 @@ const NewsHighlights = () => {
               <Card className="overflow-hidden shadow-elegant hover:shadow-glow transition-all duration-300 cursor-pointer" onClick={() => openNewsModal(featuredNews[0])}>
                 {featuredNews[0].image_url && (
                   <div className="h-64 lg:h-80 relative overflow-hidden">
-                    <img 
-                      src={featuredNews[0].image_url} 
+                    <img
+                      src={featuredNews[0].image_url}
                       alt={featuredNews[0].title}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     />
@@ -213,7 +207,7 @@ const NewsHighlights = () => {
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3">
                     {featuredNews[0].external_link && (
-                      <Button 
+                      <Button
                         className="group"
                         asChild
                       >
@@ -224,7 +218,7 @@ const NewsHighlights = () => {
                       </Button>
                     )}
                     {featuredNews[0].pdf_link && (
-                      <Button 
+                      <Button
                         variant="outline"
                         className="group bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 hover:from-red-600 hover:via-orange-600 hover:to-yellow-600 text-white border-transparent shadow-lg"
                         asChild
@@ -278,9 +272,9 @@ const NewsHighlights = () => {
                       </p>
                       <div className="flex flex-col gap-2">
                         {item.external_link && (
-                          <a 
-                            href={item.external_link} 
-                            target="_blank" 
+                          <a
+                            href={item.external_link}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center text-primary text-sm font-medium hover:underline cursor-pointer"
                             onClick={(e) => e.stopPropagation()}
@@ -290,9 +284,9 @@ const NewsHighlights = () => {
                           </a>
                         )}
                         {item.pdf_link && (
-                          <a 
-                            href={item.pdf_link} 
-                            target="_blank" 
+                          <a
+                            href={item.pdf_link}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 hover:from-red-600 hover:via-orange-600 hover:to-yellow-600 text-white text-sm font-medium px-3 py-1 rounded-full shadow-md hover:shadow-lg transition-all cursor-pointer"
                             onClick={(e) => e.stopPropagation()}
@@ -306,9 +300,9 @@ const NewsHighlights = () => {
                   </Card>
                 </motion.div>
               ))}
-              
-              <Button 
-                variant="outline" 
+
+              <Button
+                variant="outline"
                 className="w-full"
                 onClick={() => {
                   // For now, scroll to top of news section
@@ -332,7 +326,7 @@ const NewsHighlights = () => {
                   {selectedNews.title}
                 </DialogTitle>
               </DialogHeader>
-              
+
               <div className="space-y-6">
                 {/* News Meta Information */}
                 <div className="flex flex-wrap gap-4 items-center text-sm text-muted-foreground">
@@ -357,8 +351,8 @@ const NewsHighlights = () => {
                 {/* News Image */}
                 {selectedNews.image_url && (
                   <div className="w-full">
-                    <img 
-                      src={selectedNews.image_url} 
+                    <img
+                      src={selectedNews.image_url}
                       alt={selectedNews.title}
                       className="w-full h-64 object-cover rounded-lg"
                     />
@@ -391,9 +385,9 @@ const NewsHighlights = () => {
                 <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
                   {selectedNews.external_link && (
                     <Button asChild>
-                      <a 
-                        href={selectedNews.external_link} 
-                        target="_blank" 
+                      <a
+                        href={selectedNews.external_link}
+                        target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -403,14 +397,14 @@ const NewsHighlights = () => {
                     </Button>
                   )}
                   {selectedNews.pdf_link && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 hover:from-red-600 hover:via-orange-600 hover:to-yellow-600 text-white border-transparent shadow-lg"
                       asChild
                     >
-                      <a 
-                        href={selectedNews.pdf_link} 
-                        target="_blank" 
+                      <a
+                        href={selectedNews.pdf_link}
+                        target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
                       >

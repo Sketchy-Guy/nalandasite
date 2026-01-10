@@ -83,18 +83,18 @@ const Header = () => {
 
   const campusLifeSubMenu = [
     { title: "Overview", href: "/campus-life/overview" },
-    { title: "Wellness Community Centre", href: "/campus-life/wellness" },
+    // { title: "Wellness Community Centre", href: "/campus-life/wellness" },"commented out"
     { title: "Hostel Life", href: "/campus-life/hostel" },
     { title: "Student Governance", href: "/campus-life/governance" },
     { title: "Women's Forum", href: "/campus-life/womens-forum" },
     { title: "Sports", href: "/campus-life/sports" },
     { title: "Clubs", href: "/campus-life/clubs" },
     { title: "Technology & Innovation", href: "/campus-life/innovation" },
-    { title: "Student Activities", href: "/campus-life/activities" },
-    { title: "Social Consciousness", href: "/campus-life/social" },
-    { title: "Campus Festivals", href: "/campus-life/festivals" },
-    { title: "Campus Publications", href: "/campus-life/publications" },
-    { title: "Campus Amenities", href: "/campus-life/amenities" },
+    // { title: "Student Activities", href: "/campus-life/activities" },
+    // { title: "Social Consciousness", href: "/campus-life/social" },
+    // { title: "Campus Festivals", href: "/campus-life/festivals" },
+    // { title: "Campus Publications", href: "/campus-life/publications" },
+    // { title: "Campus Amenities", href: "/campus-life/amenities" },
     { title: "Other Facilities", href: "/campus-life/facilities" }
   ];
 
@@ -110,7 +110,7 @@ const Header = () => {
         { title: "SIRO", href: "/about/accreditation/siro" }
       ]
     },
-    { title: "Atal Incubation Center (10 CR Grant)", href: "/about/atal-incubation" },
+    { title: "Atal Incubation Center (10 CR Grant)", href: "https://www.aicnalanda.com/", external: true },
     { title: "SISS-Startup India (8 CR Grants)", href: "/about/siss-startup" },
     { title: "MSME-Best Business Incubator", href: "/about/msme" }
   ];

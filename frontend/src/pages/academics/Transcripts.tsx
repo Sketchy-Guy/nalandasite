@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,47 +7,40 @@ import { FileText, Download, Calendar, Users, ExternalLink, CheckCircle, Clock, 
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 
-interface AcademicPage {
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+
+interface TranscriptService {
   id: string;
-  title: string;
-  content: string;
-  slug: string;
+  service_name: string;
+  description: string | null;
+  processing_time: string | null;
+  required_documents: string[] | null;
+  fees_amount: number | null;
+  contact_email: string | null;
+  is_online: boolean;
+  is_active: boolean;
+  created_at: string;
 }
 
 const TranscriptsPage = () => {
-  const [pageContent, setPageContent] = useState<AcademicPage | null>(null);
-  const [services, setServices] = useState([]);
+  const [services, setServices] = useState<TranscriptService[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchPageContent();
     fetchServices();
   }, []);
 
-  const fetchPageContent = async () => {
-    try {
-      // For now, we'll use static content since academic_pages endpoint may not exist
-      setPageContent({
-        id: "1",
-        title: "Transcripts & Academic Services",
-        content: "Access official transcripts, certificates, and other academic services.",
-        slug: "transcripts"
-      });
-    } catch (error) {
-      console.error("Error fetching page content:", error);
-    }
-  };
-
   const fetchServices = async () => {
     try {
-      const response = await api.academicServices.list();
-      // Filter for transcript and academic service related items
-      const serviceData = (response.results || []).filter((item: any) => 
-        item.category?.toLowerCase().includes('transcript') || 
-        item.title?.toLowerCase().includes('transcript') ||
-        item.title?.toLowerCase().includes('academic service')
-      );
-      setServices(serviceData);
+      const response = await fetch(`${API_BASE_URL}/transcript-services/`);
+      if (response.ok) {
+        const data = await response.json();
+        // Handle both array and paginated responses
+        const servicesData = Array.isArray(data) ? data : (data.results || []);
+        // Filter only active services for public view
+        const activeServices = servicesData.filter((s: TranscriptService) => s.is_active);
+        setServices(activeServices);
+      }
     } catch (error) {
       console.error("Error fetching services:", error);
     } finally {
@@ -56,60 +48,12 @@ const TranscriptsPage = () => {
     }
   };
 
-  const staticServices = [
-    {
-      title: "Official Transcripts",
-      description: "Certified academic transcripts with official seal and signature",
-      processingTime: "5-7 working days",
-      fee: "₹500 per transcript",
-      icon: <FileText className="h-6 w-6 text-primary" />,
-      requirements: [
-        "Completed application form",
-        "Copy of student ID",
-        "Fee payment receipt",
-        "Address proof for delivery"
-      ]
-    },
-    {
-      title: "Duplicate Degree Certificate",
-      description: "Replacement degree certificate for lost or damaged originals",
-      processingTime: "10-15 working days",
-      fee: "₹2000 per certificate",
-      icon: <FileText className="h-6 w-6 text-primary" />,
-      requirements: [
-        "Police complaint copy (if lost)",
-        "Affidavit on stamp paper",
-        "Original fee receipt",
-        "Identity proof"
-      ]
-    },
-    {
-      title: "Provisional Certificate",
-      description: "Temporary certificate issued before degree conferment",
-      processingTime: "3-5 working days",
-      fee: "₹300 per certificate",
-      icon: <FileText className="h-6 w-6 text-primary" />,
-      requirements: [
-        "All semester mark sheets",
-        "Fee clearance certificate",
-        "Library clearance",
-        "Completed application"
-      ]
-    },
-    {
-      title: "Character Certificate",
-      description: "Certificate of good conduct during the course of study",
-      processingTime: "2-3 working days",
-      fee: "₹200 per certificate",
-      icon: <CheckCircle className="h-6 w-6 text-green-600" />,
-      requirements: [
-        "Application form",
-        "Copy of degree/provisional",
-        "Fee payment",
-        "Identity proof"
-      ]
-    }
-  ];
+  const formatCurrency = (amount: number | null) => {
+    if (!amount) return 'Free';
+    const formatted = new Intl.NumberFormat('en-IN').format(amount);
+    return `Rs. ${formatted}/-`;
+  };
+
 
   const applicationProcess = [
     {
@@ -184,61 +128,74 @@ const TranscriptsPage = () => {
         </div>
       </section>
 
-      {/* Dynamic Content */}
-      {pageContent && (
-        <section className="py-8 border-b">
-          <div className="container mx-auto px-4">
-            <div className="prose max-w-none">
-              <div dangerouslySetInnerHTML={{ __html: pageContent.content }} />
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Services Grid */}
       <section className="py-12">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">Available Services</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {staticServices.map((service, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start gap-3">
-                    {service.icon}
-                    <div className="flex-1">
-                      <CardTitle className="text-xl mb-2">{service.title}</CardTitle>
-                      <CardDescription>{service.description}</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{service.processingTime}</span>
+          {services.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {services.map((service) => (
+                <Card key={service.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start gap-3">
+                      <FileText className="h-6 w-6 text-primary" />
+                      <div className="flex-1">
+                        <CardTitle className="text-xl mb-2">{service.service_name}</CardTitle>
+                        <CardDescription>{service.description}</CardDescription>
                       </div>
-                      <Badge variant="outline">{service.fee}</Badge>
                     </div>
-                    
-                    <Separator />
-                    
-                    <div>
-                      <h4 className="font-medium mb-2">Required Documents:</h4>
-                      <ul className="text-sm space-y-1">
-                        {service.requirements.map((req, idx) => (
-                          <li key={idx} className="flex items-center gap-2">
-                            <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
-                            {req}
-                          </li>
-                        ))}
-                      </ul>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{service.processing_time || 'Contact office'}</span>
+                        </div>
+                        <Badge variant="outline">{formatCurrency(service.fees_amount)}</Badge>
+                      </div>
+
+                      {service.is_online && (
+                        <Badge variant="default" className="mb-2">Online Service Available</Badge>
+                      )}
+
+                      <Separator />
+
+                      {service.required_documents && service.required_documents.length > 0 && (
+                        <div>
+                          <h4 className="font-medium mb-2">Required Documents:</h4>
+                          <ul className="text-sm space-y-1">
+                            {service.required_documents.map((req, idx) => (
+                              <li key={idx} className="flex items-center gap-2">
+                                <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
+                                {req}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {service.contact_email && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Mail className="h-4 w-4" />
+                          {service.contact_email}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-foreground mb-2">No Services Available</h3>
+              <p className="text-muted-foreground">
+                Transcript services information will be updated here soon.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -330,7 +287,7 @@ const TranscriptsPage = () => {
           </div>
         </div>
       </section>
-      
+
       <Footer />
     </div>
   );

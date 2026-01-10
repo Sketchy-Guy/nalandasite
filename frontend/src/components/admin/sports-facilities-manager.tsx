@@ -13,13 +13,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { 
-  Trophy, 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  Search, 
+import { api } from '@/lib/api';
+import {
+  Trophy,
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
   Filter,
   Users,
   Clock,
@@ -32,6 +32,13 @@ import {
   Calendar
 } from 'lucide-react';
 
+interface SportsFacilityImage {
+  id: string;
+  image: string;
+  image_url: string;
+  display_order: number;
+}
+
 interface SportsFacility {
   id: string;
   name: string;
@@ -43,6 +50,7 @@ interface SportsFacility {
   booking_required: boolean;
   contact_person?: string;
   contact_email?: string;
+  images: SportsFacilityImage[];
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -70,6 +78,8 @@ const SportsFacilitiesManager = () => {
     contact_email: '',
     is_active: true
   });
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreview, setImagePreview] = useState<string[]>([]);
 
   useEffect(() => {
     fetchFacilities();
@@ -81,13 +91,9 @@ const SportsFacilitiesManager = () => {
 
   const fetchFacilities = async () => {
     try {
-      const { data, error } = await supabase
-        .from('sports_facilities')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setFacilities(data || []);
+      const response = await api.sportsFacilities.list({ ordering: '-created_at' });
+      const data = Array.isArray(response) ? response : (response.results || []);
+      setFacilities(data);
     } catch (error) {
       console.error('Error fetching facilities:', error);
       toast({
@@ -130,36 +136,71 @@ const SportsFacilitiesManager = () => {
       contact_email: '',
       is_active: true
     });
+    setSelectedImages([]);
+    setImagePreview([]);
     setEditingFacility(null);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length + selectedImages.length > 4) {
+      toast({
+        title: "Too many images",
+        description: "You can only upload up to 4 images",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSelectedImages(prev => [...prev, ...files].slice(0, 4));
+
+    // Create preview URLs
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(prev => [...prev, reader.result as string].slice(0, 4));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreview(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      const facilityData = {
-        ...formData,
-        capacity: formData.capacity ? parseInt(formData.capacity) : null
-      };
+      const formDataToSend = new FormData();
+
+      // Append all form fields
+      formDataToSend.append('name', formData.name);
+      if (formData.description) formDataToSend.append('description', formData.description);
+      if (formData.image_url) formDataToSend.append('image_url', formData.image_url);
+      formDataToSend.append('facility_type', formData.facility_type);
+      if (formData.capacity) formDataToSend.append('capacity', formData.capacity);
+      if (formData.operating_hours) formDataToSend.append('operating_hours', formData.operating_hours);
+      formDataToSend.append('booking_required', String(formData.booking_required));
+      if (formData.contact_person) formDataToSend.append('contact_person', formData.contact_person);
+      if (formData.contact_email) formDataToSend.append('contact_email', formData.contact_email);
+      formDataToSend.append('is_active', String(formData.is_active));
+
+      // Append images
+      selectedImages.forEach((image) => {
+        formDataToSend.append('uploaded_images', image);
+      });
 
       if (editingFacility) {
-        const { error } = await supabase
-          .from('sports_facilities')
-          .update(facilityData)
-          .eq('id', editingFacility.id);
-
-        if (error) throw error;
+        await api.sportsFacilities.update(editingFacility.id, formDataToSend);
 
         toast({
           title: "Success",
           description: "Sports facility updated successfully"
         });
       } else {
-        const { error } = await supabase
-          .from('sports_facilities')
-          .insert(facilityData);
-
-        if (error) throw error;
+        await api.sportsFacilities.create(formDataToSend);
 
         toast({
           title: "Success",
@@ -203,18 +244,13 @@ const SportsFacilitiesManager = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('sports_facilities')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await api.sportsFacilities.delete(id);
 
       toast({
         title: "Success",
         description: "Sports facility deleted successfully"
       });
-      
+
       fetchFacilities();
     } catch (error) {
       console.error('Error deleting facility:', error);
@@ -292,9 +328,10 @@ const SportsFacilitiesManager = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <Tabs defaultValue="basic" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="basic">Basic Info</TabsTrigger>
                   <TabsTrigger value="details">Details</TabsTrigger>
+                  <TabsTrigger value="images">Images</TabsTrigger>
                   <TabsTrigger value="contact">Contact</TabsTrigger>
                 </TabsList>
 
@@ -398,6 +435,46 @@ const SportsFacilitiesManager = () => {
                   </div>
                 </TabsContent>
 
+                <TabsContent value="images" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="images">Upload Images (Max 4)</Label>
+                    <Input
+                      id="images"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageSelect}
+                      disabled={selectedImages.length >= 4}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      {selectedImages.length}/4 images selected
+                    </p>
+                  </div>
+
+                  {imagePreview.length > 0 && (
+                    <div className="grid grid-cols-2 gap-4">
+                      {imagePreview.map((preview, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={preview}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => removeImage(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
                 <TabsContent value="contact" className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="contact_person">Contact Person</Label>
@@ -473,8 +550,8 @@ const SportsFacilitiesManager = () => {
             <Trophy className="h-16 w-16 text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold mb-2">No Sports Facilities Found</h3>
             <p className="text-muted-foreground text-center mb-4">
-              {searchTerm || filterType !== 'all' 
-                ? 'No facilities match your current filters.' 
+              {searchTerm || filterType !== 'all'
+                ? 'No facilities match your current filters.'
                 : 'Get started by adding your first sports facility.'}
             </p>
             {!searchTerm && filterType === 'all' && (
@@ -543,7 +620,7 @@ const SportsFacilitiesManager = () => {
                     </div>
 
                     <Separator className="my-4" />
-                    
+
                     <div className="flex justify-end space-x-2">
                       <Button
                         variant="outline"

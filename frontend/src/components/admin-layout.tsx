@@ -310,8 +310,9 @@ function AdminSidebar() {
   React.useEffect(() => {
     const fetchPermissions = async () => {
       try {
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
         const token = localStorage.getItem('access_token');
-        const response = await fetch('http://localhost:8000/api/admin-roles/my_permissions/', {
+        const response = await fetch(`${API_BASE_URL}/admin-roles/my_permissions/`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

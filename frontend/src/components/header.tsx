@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
-import { motion } from "framer-motion";
-import { Menu, X, Search, User, CreditCard, ChevronDown, LogOut, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Menu, X, Search, User, CreditCard, ChevronDown, LogOut, ChevronRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,6 +34,8 @@ const Header = () => {
   const [showTopbar, setShowTopbar] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [topbarHeight, setTopbarHeight] = useState(0);
+  const [showAicteMenu, setShowAicteMenu] = useState(false);
+  const [showMobileAicteMenu, setShowMobileAicteMenu] = useState(false);
   const topbarRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
   const { user, signOut, isAdmin } = useAuth();
@@ -98,6 +100,23 @@ const Header = () => {
     { title: "Other Facilities", href: "/campus-life/facilities" }
   ];
 
+  const aicteSubMenu = [
+    { title: "Mandatory Disclosure", href: "https://drive.google.com/file/d/1DmFiIJ2hUrUV20MVeqWD7YWOmRDhrW_c/view?usp=sharing", external: true },
+    {
+      title: "AICTE Approvals",
+      href: "/aicte/approvals",
+      subItems: [
+        { title: "LOA", href: "https://drive.google.com/file/d/1qiexyJ_n_IuAQmPKPdMzUKIJfhiB14J8/view?usp=sharing", external: true },
+        { title: "EOA", href: "/aicte/eoa" }
+      ]
+    },
+    { title: "Students Feedback", href: "https://docs.google.com/forms/d/e/1FAIpQLSd2QI79xIAvHGB0ENzeS7C-M4a_4NDVFgX0kgrXABXizRwldQ/viewform?usp=publish-editor", external: true },
+    { title: "Faculty Feedback", href: "https://docs.google.com/forms/d/e/1FAIpQLScn1Y89a3t6UXuTsaq51R7eU8xT6GOC4Scp67Hc4gXpmnJYJw/viewform?usp=publish-editor", external: true },
+    { title: "Board of Governors", href: "https://drive.google.com/file/d/1kUv8JuUgyNiKgyaCEk-iycDA0r8oHQpi/view?usp=sharing", external: true },
+    { title: "Display Of Course Intake", href: "https://drive.google.com/file/d/1eCvD6bd4vLwKjiF4Ig6-u2fYq5lSZywr/view?usp=sharing", external: true },
+    { title: "Online Grievance", href: "https://docs.google.com/forms/d/e/1FAIpQLSe-IYgcBHAbyJ9syQ0GuJg4zLg6xuUwLi8_Y0p1nTsQbg7O0g/viewform?usp=dialog", external: true }
+  ];
+
   const aboutUsSubMenu = [
     { title: "About Us", href: "/about" },
     { title: "Vision & Mission", href: "/about/vision-mission" },
@@ -110,6 +129,7 @@ const Header = () => {
         { title: "SIRO", href: "/about/accreditation/siro" }
       ]
     },
+    { title: "AICTE", href: "#", hasNestedMenu: true },
     { title: "Atal Incubation Center (10 CR Grant)", href: "https://www.aicnalanda.com/", external: true },
     { title: "SISS-Startup India (8 CR Grants)", href: "/about/siss-startup" },
     { title: "MSME-Best Business Incubator", href: "/about/msme" }
@@ -418,34 +438,106 @@ const Header = () => {
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-xs">About Us</NavigationMenuTrigger>
+                  <NavigationMenuTrigger className="text-xs" onClick={() => setShowAicteMenu(false)}>About Us</NavigationMenuTrigger>
                   <NavigationMenuContent className="z-[100]">
-                    <div className="w-80 p-4 bg-popover border border-border shadow-lg rounded-xl">
-                      <div className="grid gap-2">
-                        {aboutUsSubMenu.map((item) => (
-                          <div key={item.title}>
-                            <NavigationMenuLink
-                              href={item.href}
-                              className="block px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-md transition-colors font-medium"
+                    <div className="w-80 bg-popover border border-border shadow-lg rounded-xl overflow-hidden relative">
+                      <AnimatePresence mode="wait">
+                        {!showAicteMenu ? (
+                          <motion.div
+                            key="about-menu"
+                            initial={{ x: 0 }}
+                            animate={{ x: 0 }}
+                            exit={{ x: -320 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                            className="p-4"
+                          >
+                            <div className="grid gap-2">
+                              {aboutUsSubMenu.map((item) => (
+                                <div key={item.title}>
+                                  {item.hasNestedMenu ? (
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        setShowAicteMenu(true);
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-md transition-colors font-medium flex items-center justify-between group"
+                                    >
+                                      <span>{item.title}</span>
+                                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-accent-foreground transition-colors" />
+                                    </button>
+                                  ) : (
+                                    <>
+                                      <NavigationMenuLink
+                                        href={item.href}
+                                        className="block px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-md transition-colors font-medium"
+                                      >
+                                        {item.title}
+                                      </NavigationMenuLink>
+                                      {item.subItems && (
+                                        <div className="ml-4 mt-1 space-y-1">
+                                          {item.subItems.map((subItem) => (
+                                            <NavigationMenuLink
+                                              key={subItem.title}
+                                              href={subItem.href}
+                                              className="block px-3 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                            >
+                                              {subItem.title}
+                                            </NavigationMenuLink>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="aicte-menu"
+                            initial={{ x: 320 }}
+                            animate={{ x: 0 }}
+                            exit={{ x: 320 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                            className="p-4"
+                          >
+                            <button
+                              onClick={() => setShowAicteMenu(false)}
+                              className="flex items-center gap-2 mb-3 text-sm text-muted-foreground hover:text-foreground transition-colors group"
                             >
-                              {item.title}
-                            </NavigationMenuLink>
-                            {item.subItems && (
-                              <div className="ml-4 mt-1 space-y-1">
-                                {item.subItems.map((subItem) => (
+                              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                              <span>Back to About Us</span>
+                            </button>
+                            <div className="border-t border-border mb-3"></div>
+                            <h3 className="text-sm font-semibold text-primary mb-2 px-3">AICTE</h3>
+                            <div className="grid gap-2">
+                              {aicteSubMenu.map((item) => (
+                                <div key={item.title}>
                                   <NavigationMenuLink
-                                    key={subItem.title}
-                                    href={subItem.href}
-                                    className="block px-3 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                    href={item.href}
+                                    className="block px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-md transition-colors font-medium"
                                   >
-                                    {subItem.title}
+                                    {item.title}
                                   </NavigationMenuLink>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                                  {item.subItems && (
+                                    <div className="ml-4 mt-1 space-y-1">
+                                      {item.subItems.map((subItem) => (
+                                        <NavigationMenuLink
+                                          key={subItem.title}
+                                          href={subItem.href}
+                                          className="block px-3 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                          {subItem.title}
+                                        </NavigationMenuLink>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </NavigationMenuContent>
 
@@ -594,24 +686,92 @@ const Header = () => {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="ml-4 pb-2 space-y-1"
+                    className="ml-4 pb-2 space-y-1 overflow-hidden relative"
                   >
-                    {aboutUsSubMenu.map((item) => (
-                      <div key={item.title}>
-                        <a href={item.href} className="block py-1 text-sm text-muted-foreground hover:text-foreground">
-                          {item.title}
-                        </a>
-                        {item.subItems && (
-                          <div className="ml-4 space-y-1">
-                            {item.subItems.map((subItem) => (
-                              <a key={subItem.title} href={subItem.href} className="block py-1 text-xs text-muted-foreground hover:text-foreground">
-                                {subItem.title}
+                    <AnimatePresence mode="wait">
+                      {!showMobileAicteMenu ? (
+                        <motion.div
+                          key="mobile-about-menu"
+                          initial={{ x: 0 }}
+                          animate={{ x: 0 }}
+                          exit={{ x: -300 }}
+                          transition={{ duration: 0.3, ease: "easeInOut" }}
+                        >
+                          {aboutUsSubMenu.map((item) => (
+                            <div key={item.title}>
+                              {item.hasNestedMenu ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setShowMobileAicteMenu(true);
+                                  }}
+                                  className="w-full text-left py-1 text-sm text-muted-foreground hover:text-foreground flex items-center justify-between group"
+                                >
+                                  <span>{item.title}</span>
+                                  <ChevronRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                                </button>
+                              ) : (
+                                <>
+                                  <a href={item.href} className="block py-1 text-sm text-muted-foreground hover:text-foreground">
+                                    {item.title}
+                                  </a>
+                                  {item.subItems && (
+                                    <div className="ml-4 space-y-1">
+                                      {item.subItems.map((subItem) => (
+                                        <a key={subItem.title} href={subItem.href} className="block py-1 text-xs text-muted-foreground hover:text-foreground">
+                                          {subItem.title}
+                                        </a>
+                                      ))}
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          ))}
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="mobile-aicte-menu"
+                          initial={{ x: 300 }}
+                          animate={{ x: 0 }}
+                          exit={{ x: 300 }}
+                          transition={{ duration: 0.3, ease: "easeInOut" }}
+                        >
+                          <button
+                            onClick={() => setShowMobileAicteMenu(false)}
+                            className="flex items-center gap-2 mb-2 text-xs text-muted-foreground hover:text-foreground transition-colors group"
+                          >
+                            <ArrowLeft className="h-3 w-3 group-hover:-translate-x-1 transition-transform" />
+                            <span>Back</span>
+                          </button>
+                          <div className="border-t border-border/30 mb-2"></div>
+                          <h4 className="text-xs font-semibold text-primary mb-1 px-2">AICTE</h4>
+                          {aicteSubMenu.map((item) => (
+                            <div key={item.title}>
+                              <a
+                                href={item.href}
+                                className="block py-1 text-sm text-muted-foreground hover:text-foreground font-medium"
+                              >
+                                {item.title}
                               </a>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                              {item.subItems && (
+                                <div className="ml-4 space-y-1">
+                                  {item.subItems.map((subItem) => (
+                                    <a
+                                      key={subItem.title}
+                                      href={subItem.href}
+                                      className="block py-1 text-xs text-muted-foreground hover:text-foreground"
+                                    >
+                                      {subItem.title}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 )}
               </div>

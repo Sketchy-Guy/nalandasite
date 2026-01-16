@@ -107,7 +107,7 @@ const Header = () => {
       href: "/aicte/approvals",
       subItems: [
         { title: "LOA", href: "https://drive.google.com/file/d/1qiexyJ_n_IuAQmPKPdMzUKIJfhiB14J8/view?usp=sharing", external: true },
-        { title: "EOA", href: "/aicte/eoa" }
+        { title: "EOA", href: "https://drive.google.com/drive/folders/138NWnCPNvRbQunY8BimKq-2uriL3vzUn?usp=sharing", external: true }
       ]
     },
     { title: "Students Feedback", href: "https://docs.google.com/forms/d/e/1FAIpQLSd2QI79xIAvHGB0ENzeS7C-M4a_4NDVFgX0kgrXABXizRwldQ/viewform?usp=publish-editor", external: true },

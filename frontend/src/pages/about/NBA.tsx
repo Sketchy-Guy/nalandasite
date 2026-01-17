@@ -1,45 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Award, CheckCircle, ExternalLink, GraduationCap } from "lucide-react";
+import { Award, CheckCircle, GraduationCap } from "lucide-react";
 
 const NBA = () => {
-  const { data: nbaInfo } = useQuery({
-    queryKey: ['nba-accreditation'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('accreditation_info')
-        .select('*')
-        .eq('accreditation_type', 'nba')
-        .eq('is_active', true)
-        .single();
-      return data;
-    }
-  });
 
   const accreditedPrograms = [
     {
-      program: "Computer Science & Engineering",
-      accreditationDate: "2020",
-      validUpto: "2023",
-      status: "Accredited"
-    },
-    {
-      program: "Electronics & Communication Engineering",
-      accreditationDate: "2020",
-      validUpto: "2023", 
-      status: "Accredited"
-    },
-    {
       program: "Mechanical Engineering",
-      accreditationDate: "2021",
-      validUpto: "2024",
-      status: "Accredited"
-    },
-    {
-      program: "Civil Engineering",
       accreditationDate: "2021",
       validUpto: "2024",
       status: "Accredited"
@@ -58,7 +25,7 @@ const NBA = () => {
       description: "Apply knowledge of mathematics, science, engineering fundamentals to solve complex engineering problems"
     },
     {
-      outcome: "Problem Analysis", 
+      outcome: "Problem Analysis",
       description: "Identify, formulate, research literature, and analyze complex engineering problems"
     },
     {
@@ -103,7 +70,7 @@ const NBA = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-6xl mx-auto">
-          
+
           {/* Overview */}
           <Card className="mb-12">
             <CardContent className="p-8">
@@ -111,14 +78,12 @@ const NBA = () => {
                 <GraduationCap className="h-16 w-16 text-secondary mx-auto mb-6" />
                 <h2 className="text-3xl font-bold">Program Accreditation Excellence</h2>
               </div>
-              
+
               <div className="prose prose-lg max-w-none">
                 <p className="text-muted-foreground leading-relaxed text-center">
-                  {nbaInfo?.description || `
-                    The National Board of Accreditation (NBA) has recognized multiple engineering programs at 
-                    NIT Nalanda for meeting international standards of engineering education. This accreditation 
-                    ensures our graduates are globally competitive and industry-ready.
-                  `}
+                  The National Board of Accreditation (NBA) has recognized multiple engineering programs at
+                  NIT Nalanda for meeting international standards of engineering education. This accreditation
+                  ensures our graduates are globally competitive and industry-ready.
                 </p>
               </div>
             </CardContent>
@@ -127,7 +92,7 @@ const NBA = () => {
           {/* Accredited Programs */}
           <div className="mb-12">
             <h3 className="text-2xl font-bold text-center mb-8">NBA Accredited Programs</h3>
-            
+
             <div className="grid gap-4">
               {accreditedPrograms.map((program, index) => (
                 <Card key={index} className="overflow-hidden">
@@ -161,7 +126,7 @@ const NBA = () => {
             <p className="text-center text-muted-foreground mb-8">
               NBA accreditation ensures our programs achieve specific learning outcomes that prepare students for professional practice.
             </p>
-            
+
             <div className="grid md:grid-cols-2 gap-6">
               {nbaOutcomes.map((outcome, index) => (
                 <Card key={index}>
@@ -248,7 +213,7 @@ const NBA = () => {
           <Card className="mb-12">
             <CardContent className="p-8">
               <h3 className="text-2xl font-bold text-center mb-6">NBA Quality Assurance Process</h3>
-              
+
               <div className="grid md:grid-cols-4 gap-6 text-center">
                 <div>
                   <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -259,7 +224,7 @@ const NBA = () => {
                     Comprehensive evaluation of program standards and outcomes
                   </p>
                 </div>
-                
+
                 <div>
                   <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-secondary font-bold">2</span>
@@ -269,7 +234,7 @@ const NBA = () => {
                     On-site evaluation by NBA appointed expert committee
                   </p>
                 </div>
-                
+
                 <div>
                   <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-secondary font-bold">3</span>
@@ -279,7 +244,7 @@ const NBA = () => {
                     Detailed analysis of curriculum, faculty, and infrastructure
                   </p>
                 </div>
-                
+
                 <div>
                   <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-secondary font-bold">4</span>
@@ -293,22 +258,7 @@ const NBA = () => {
             </CardContent>
           </Card>
 
-          {/* Certificate and Documentation */}
-          {nbaInfo?.certificate_url && (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <h3 className="text-2xl font-bold mb-4">Official Documentation</h3>
-                <p className="text-muted-foreground mb-6">
-                  Access our official NBA accreditation certificates and program-specific documentation.
-                </p>
-                <Button asChild size="lg">
-                  <a href={nbaInfo.certificate_url} target="_blank" rel="noopener noreferrer">
-                    View NBA Certificates <ExternalLink className="h-5 w-5 ml-2" />
-                  </a>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+
         </div>
       </div>
     </div>

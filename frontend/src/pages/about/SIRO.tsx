@@ -1,22 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Shield, Lightbulb, ExternalLink } from "lucide-react";
+import { Shield, Lightbulb } from "lucide-react";
 
 const SIRO = () => {
-  const { data: siroInfo } = useQuery({
-    queryKey: ['siro-recognition'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('accreditation_info')
-        .select('*')
-        .eq('accreditation_type', 'siro')
-        .eq('is_active', true)
-        .single();
-      return data;
-    }
-  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -37,19 +22,11 @@ const SIRO = () => {
               <Lightbulb className="h-16 w-16 text-accent mx-auto mb-6" />
               <h2 className="text-3xl font-bold mb-4">Research Excellence Recognition</h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                {siroInfo?.description || `
-                  NIT Nalanda has been recognized as a Scientific and Industrial Research Organization (SIRO) 
-                  by the Department of Scientific and Industrial Research, Government of India, validating 
-                  our commitment to research and innovation.
-                `}
+                NIT Nalanda has been recognized as a Scientific and Industrial Research Organization (SIRO)
+                by the Department of Scientific and Industrial Research, Government of India, validating
+                our commitment to research and innovation.
               </p>
-              {siroInfo?.certificate_url && (
-                <Button asChild className="mt-6" size="lg">
-                  <a href={siroInfo.certificate_url} target="_blank" rel="noopener noreferrer">
-                    View SIRO Certificate <ExternalLink className="h-5 w-5 ml-2" />
-                  </a>
-                </Button>
-              )}
+
             </CardContent>
           </Card>
         </div>

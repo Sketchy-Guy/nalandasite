@@ -22,7 +22,7 @@ const SIRO = () => {
               <Lightbulb className="h-16 w-16 text-accent mx-auto mb-6" />
               <h2 className="text-3xl font-bold mb-4">Research Excellence Recognition</h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                NIT Nalanda has been recognized as a Scientific and Industrial Research Organization (SIRO)
+                Nalanda Institute of Technology has been recognized as a Scientific and Industrial Research Organization (SIRO)
                 by the Department of Scientific and Industrial Research, Government of India, validating
                 our commitment to research and innovation.
               </p>

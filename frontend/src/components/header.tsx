@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Search, User, CreditCard, ChevronDown, LogOut, ChevronRight, ArrowLeft } from "lucide-react";
+import { Menu, X, Search, User, CreditCard, ChevronDown, LogOut, ChevronRight, ArrowLeft, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -254,8 +254,25 @@ const Header = () => {
             </div>
           </div>
 
-          {/* Right side: Fees Payment + User Menu */}
+          {/* Right side: Mandatory Disclosure + Fees Payment + User Menu */}
           <div className="flex items-center space-x-1 sm:space-x-3">
+            {/* Mandatory Disclosure */}
+            <div className="relative p-1 rounded-lg bg-gradient-to-r from-white via-white to-blue-100 shadow-sm">
+              <a
+                href="https://drive.google.com/file/d/1DmFiIJ2hUrUV20MVeqWD7YWOmRDhrW_c/view?usp=sharing"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="ghost" size="sm" className="text-gray-700 hover:bg-blue-50 text-xs sm:text-sm relative z-10">
+                  <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden md:inline">Mandatory Disclosure</span>
+                  <span className="hidden sm:inline md:hidden">AICTE</span>
+                  <span className="sm:hidden">MD</span>
+                </Button>
+              </a>
+              <div className="absolute inset-0 bg-gradient-to-r from-white via-blue-50 to-blue-200 opacity-40 rounded-lg animate-pulse"></div>
+            </div>
+
             {/* Fees Payment - moved next to login */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

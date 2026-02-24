@@ -23,7 +23,8 @@ const Footer = () => {
     { name: "Admissions", path: "/admissions" },
     { name: "Campus Life", path: "/campus-life" },
     { name: "Research", path: "/research" },
-    { name: "Alumni", path: "/alumni" }
+    { name: "Alumni", path: "/alumni" },
+    { name: "Mandatory Disclosure", path: "https://drive.google.com/file/d/1DmFiIJ2hUrUV20MVeqWD7YWOmRDhrW_c/view?usp=sharing", external: true }
   ];
 
   const academicLinks = [
@@ -132,12 +133,23 @@ const Footer = () => {
             <ul className="space-y-3">
               {quickLinks.map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.path}
-                    className="text-muted-foreground hover:text-primary transition-smooth text-sm"
-                  >
-                    {link.name}
-                  </Link>
+                  {link.external ? (
+                    <a
+                      href={link.path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-primary transition-smooth text-sm"
+                    >
+                      {link.name}
+                    </a>
+                  ) : (
+                    <Link
+                      to={link.path}
+                      className="text-muted-foreground hover:text-primary transition-smooth text-sm"
+                    >
+                      {link.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

@@ -1,5 +1,6 @@
 import Header from "@/components/header";
 import HeroSection from "@/components/hero-section";
+import VideoHighlights from "@/components/video-highlights";
 import NoticeBoard from "@/components/notice-board";
 import CampusStats from "@/components/campus-stats";
 import NewsHighlights from "@/components/news-highlights";
@@ -15,6 +16,7 @@ const Index = () => {
       <Header />
       <main>
         <HeroSection />
+        <VideoHighlights />
         <CampusStats />
         <NoticeBoard />
         <NewsHighlights />

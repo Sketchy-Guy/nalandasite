@@ -9,6 +9,7 @@ import CreativePanel from "@/components/creative-panel";
 import MagazinesNewsletters from "@/components/magazines-newsletters";
 import ClubsActivities from "@/components/clubs-activities";
 import Footer from "@/components/footer";
+import AdmissionEnquiryPopup from "@/components/admission-enquiry-popup";
 
 const Index = () => {
   return (
@@ -26,6 +27,7 @@ const Index = () => {
         <ClubsActivities />
       </main>
       <Footer />
+      <AdmissionEnquiryPopup />
     </div>
   );
 };

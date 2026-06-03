@@ -50,6 +50,7 @@ const formSchema = z.object({
     .max(50, { message: "Name must be less than 50 characters" }),
   phone: z
     .string()
+    .min(1, { message: "Phone number is required" })
     .regex(/^[0-9]{10}$/, { message: "Phone number must be exactly 10 digits" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   state: z.string().min(2, { message: "State must be at least 2 characters" }),
